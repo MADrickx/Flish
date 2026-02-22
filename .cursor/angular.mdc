@@ -1,0 +1,443 @@
+---
+description: Comprehensive best practices and coding standards for Angular 21 development — signals, NgRx SignalStore, feature-based architecture, performance, and modern reactive patterns.
+globs: ["**/*.{ts,html,css}"]
+---
+
+# Angular 21 Best Practices
+
+This project follows modern Angular 21 best practices emphasizing signals-first reactivity, feature-based architecture, strong typing, performance, and maintainability.
+
+## TypeScript Best Practices
+
+* **Strict Type Checking:** Always enable and adhere to strict type checking (`strict: true` in `tsconfig.json`).
+* **Prefer Type Inference:** Let TypeScript infer types when obvious from context. Explicit annotations are required only when inference is insufficient.
+    * **Bad:**
+        ```typescript
+        const name: string = 'Angular';
+        ```
+    * **Good:**
+        ```typescript
+        const name = 'Angular';
+        ```
+* **Avoid `any`:** Never use `any` unless absolutely unavoidable. Use `unknown` when a type is uncertain, then narrow it with type guards.
+* **Use `readonly`:** Mark properties, parameters, and variables as `readonly` when they should not be reassigned.
+* **Use Utility Types:** Leverage `Partial<T>`, `Pick<T, K>`, `Omit<T, K>`, `Record<K, V>`, and `Required<T>` instead of manually redefining shapes.
+* **Discriminated Unions for State:** Prefer discriminated unions over boolean flags for representing mutually exclusive states.
+    ```typescript
+    type AsyncState<T> =
+      | { status: 'idle' }
+      | { status: 'loading' }
+      | { status: 'success'; data: T }
+      | { status: 'error'; error: Error };
+    ```
+
+## Architecture
+
+* **Feature-Based Folder Structure:** Organize code by business feature, not by technical type. Each feature is a self-contained vertical slice.
+    ```
+    app/
+    ├── features/
+    │   ├── auth/
+    │   │   ├── components/
+    │   │   ├── pages/
+    │   │   ├── services/
+    │   │   ├── store/
+    │   │   ├── types/
+    │   │   └── auth.routes.ts
+    │   ├── dashboard/
+    │   └── settings/
+    ├── core/
+    │   ├── components/
+    │   ├── directives/
+    │   ├── guards/
+    │   ├── interceptors/
+    │   ├── pipes/
+    │   ├── services/
+    │   └── types/
+    └── app.routes.ts
+    ```
+* **`core/` over `shared/`:** Place truly feature-independent, application-wide code in `core/`. If something is reused across features, evaluate whether it belongs as its own feature or in `core/`.
+* **Domain Boundaries:** Each feature should be independently lazy-loadable, testable, and removable without affecting other features.
+* **Barrel Exports:** Use `index.ts` files sparingly — only at feature boundaries. Avoid deep barrel re-exports that obscure import sources.
+
+## Standalone Components
+
+* **Always Standalone:** Every component, directive, and pipe must be standalone. Never use `NgModules` for declarations.
+* **Implicit Standalone:** Do not set `standalone: true` in decorators — it is the default in Angular 21.
+    * **Bad:**
+        ```typescript
+        @Component({
+          standalone: true,
+          selector: 'app-card',
+          template: `...`,
+        })
+        ```
+    * **Good:**
+        ```typescript
+        @Component({
+          selector: 'app-card',
+          template: `...`,
+        })
+        ```
+* **Co-locate Imports:** Import only what the component directly uses in its `imports` array. Avoid importing entire modules.
+
+## Components
+
+* **Single Responsibility:** Each component owns one well-defined piece of UI. Split large components into smaller presentational children.
+* **`input()` and `output()` Functions:** Always use function-based inputs and outputs instead of decorators.
+    * **Bad:**
+        ```typescript
+        @Input() userId!: string;
+        @Output() userSelected = new EventEmitter<string>();
+        ```
+    * **Good:**
+        ```typescript
+        userId = input.required<string>();
+        userSelected = output<string>();
+        ```
+* **`model()` for Two-Way Binding:** Use `model()` signals for components that need two-way binding (custom form controls, toggles, sliders).
+    ```typescript
+    import { model } from '@angular/core';
+
+    checked = model.required<boolean>();
+    // Parent: <app-toggle [(checked)]="isEnabled" />
+    ```
+* **Signal Queries:** Use `viewChild()`, `viewChildren()`, `contentChild()`, and `contentChildren()` instead of `@ViewChild` / `@ContentChild` decorators. Signal queries are reactive and eliminate the need for lifecycle hooks like `ngAfterViewInit`.
+    * **Bad:**
+        ```typescript
+        @ViewChild('myInput') myInput!: ElementRef;
+        ```
+    * **Good:**
+        ```typescript
+        myInput = viewChild.required<ElementRef>('myInput');
+        ```
+* **`ChangeDetectionStrategy.OnPush`:** Always set `changeDetection: ChangeDetectionStrategy.OnPush`. Signals and OnPush work together for optimal performance.
+* **Host Bindings:** Do NOT use `@HostBinding` / `@HostListener` decorators. Use the `host` property in the `@Component` or `@Directive` decorator.
+    ```typescript
+    @Component({
+      selector: 'app-tooltip',
+      host: {
+        '[class.active]': 'isActive()',
+        '(click)': 'onClick()',
+      },
+      template: `...`,
+    })
+    ```
+* **Inline Templates for Small Components:** Use `template` for components with fewer than ~20 lines of HTML. Use `templateUrl` for larger templates.
+* **No `ngClass` / `ngStyle`:** Use native `[class.name]` and `[style.prop]` bindings.
+    * **Bad:**
+        ```html
+        <div [ngClass]="{'active': isActive()}"></div>
+        <div [ngStyle]="{'font-size': size() + 'px'}"></div>
+        ```
+    * **Good:**
+        ```html
+        <div [class.active]="isActive()"></div>
+        <div [style.font-size.px]="size()"></div>
+        ```
+
+## Signals
+
+Signals are the primary reactivity primitive. Prefer signals over RxJS for synchronous, local, and UI-driven state.
+
+* **`signal()`:** Use for local mutable state.
+    ```typescript
+    count = signal(0);
+    ```
+* **`computed()`:** Use for derived read-only state. Computed signals are lazy and cached.
+    ```typescript
+    doubleCount = computed(() => this.count() * 2);
+    ```
+* **No Side Effects in `computed()`:** Never perform HTTP calls, DOM manipulation, or state mutations inside `computed()`. It must be a pure derivation.
+* **`linkedSignal()`:** Use when you need a writable signal that automatically resets when a source signal changes. Ideal for selections that must stay valid when options change.
+    ```typescript
+    options = signal(['A', 'B', 'C']);
+    selected = linkedSignal(() => this.options()[0]);
+    // When options changes, selected resets to the first option.
+    // User can still manually set: this.selected.set('B');
+    ```
+* **`effect()`:** Use for side effects that react to signal changes (logging, analytics, localStorage sync). Effects should not write to other signals when avoidable — prefer `computed()` or `linkedSignal()` for derived state.
+    ```typescript
+    constructor() {
+      effect(() => {
+        localStorage.setItem('count', JSON.stringify(this.count()));
+      });
+    }
+    ```
+* **Signal Updates:** Use `set()` for replacing a value and `update()` for deriving from the previous value. Always produce new references for objects and arrays — never mutate in place.
+    * **Bad:**
+        ```typescript
+        this.items.update(list => { list.push(item); return list; });
+        ```
+    * **Good:**
+        ```typescript
+        this.items.update(list => [...list, item]);
+        ```
+
+## Data Fetching
+
+Use Angular's resource APIs for declarative, signal-integrated data fetching. These replace manual `HttpClient` + `BehaviorSubject` + loading/error flag patterns.
+
+* **`httpResource()`:** Preferred for HTTP GET requests. Returns a signal-based resource with `value()`, `isLoading()`, `error()`, `status()`, `statusCode()`, and `headers()`.
+    ```typescript
+    import { httpResource } from '@angular/common/http';
+
+    usersResource = httpResource<User[]>(() => `/api/users`);
+
+    // Reactive URL — re-fetches when userId signal changes:
+    userResource = httpResource<User>(() => `/api/users/${this.userId()}`);
+    ```
+* **`resource()`:** For async operations beyond HTTP (e.g. IndexedDB, Web Workers). Takes a `request` signal and a `loader` function.
+    ```typescript
+    import { resource } from '@angular/core';
+
+    userResource = resource({
+      request: () => ({ id: this.userId() }),
+      loader: async ({ request }) => {
+        const response = await fetch(`/api/users/${request.id}`);
+        return response.json();
+      },
+    });
+    ```
+* **`rxResource()`:** Observable-based variant of `resource()` for RxJS-heavy codebases. Use when services return Observables.
+    ```typescript
+    import { rxResource } from '@angular/core/rxjs-interop';
+
+    userResource = rxResource({
+      request: () => ({ id: this.userId() }),
+      loader: ({ request }) => this.http.get<User>(`/api/users/${request.id}`),
+    });
+    ```
+* **Status Modeling:** Always model async state explicitly. Resource APIs provide `status` signals with values `'idle' | 'loading' | 'resolved' | 'error'`. Use these in templates to show appropriate UI states.
+
+## NgRx SignalStore
+
+> Requires `@ngrx/signals` — install with `npm install @ngrx/signals`.
+
+Use NgRx SignalStore for feature-level state management. It replaces scattered `BehaviorSubject`-based services with a declarative, functional, signal-native store.
+
+* **One Store Per Feature:** Create one `signalStore()` per feature/domain. Do not create a single global store.
+    ```typescript
+    import { signalStore, withState, withComputed, withMethods, patchState } from '@ngrx/signals';
+
+    type TodosState = {
+      todos: Todo[];
+      filter: 'all' | 'active' | 'completed';
+      loading: boolean;
+    };
+
+    const initialState: TodosState = {
+      todos: [],
+      filter: 'all',
+      loading: false,
+    };
+
+    export const TodosStore = signalStore(
+      { providedIn: 'root' },
+      withState(initialState),
+
+      withComputed(({ todos, filter }) => ({
+        filteredTodos: computed(() => {
+          const all = todos();
+          switch (filter()) {
+            case 'active': return all.filter(t => !t.completed);
+            case 'completed': return all.filter(t => t.completed);
+            default: return all;
+          }
+        }),
+        totalCount: computed(() => todos().length),
+      })),
+
+      withMethods((store, todosService = inject(TodosService)) => ({
+        setFilter(filter: TodosState['filter']) {
+          patchState(store, { filter });
+        },
+        async loadTodos() {
+          patchState(store, { loading: true });
+          const todos = await firstValueFrom(todosService.getAll());
+          patchState(store, { todos, loading: false });
+        },
+      })),
+    );
+    ```
+* **`withEntities()`:** Use for normalized collection management. Provides `addEntity`, `updateEntity`, `removeEntity`, `setAllEntities` operations with strong typing.
+    ```typescript
+    import { withEntities, entityConfig } from '@ngrx/signals/entities';
+
+    const todoConfig = entityConfig({
+      entity: type<Todo>(),
+      collection: 'todos',
+      selectId: (todo) => todo.id,
+    });
+
+    export const TodosStore = signalStore(
+      withEntities(todoConfig),
+      // ...
+    );
+    ```
+* **`patchState()`:** Always use `patchState()` for immutable state updates. Never mutate state objects directly.
+* **Protected State:** State is protected by default (`{ protectedState: true }`). Only store methods can modify state. Do not expose `patchState` to components.
+* **`rxMethod()`:** Use for Observable-based side effects within a store (API calls, WebSocket streams).
+* **`signalMethod()`:** Use for lightweight, signal-driven side effects that don't need RxJS.
+* **Layered `withMethods()`:** When one method needs to call another, define them in separate `withMethods()` calls — methods are only available after their block completes.
+
+### Anti-Patterns to Avoid
+* **Signal Soup:** Don't scatter standalone signals across services. Centralize feature state in a SignalStore.
+* **Duplicate Sources of Truth:** One piece of state should live in exactly one place.
+* **Object Mutation in Signals:** Always create new references when updating arrays or objects in state.
+* **Side Effects in `computed()`:** Use `effect()`, store methods, or `rxMethod()` for side effects.
+* **Missing Status Models:** Always model `'idle' | 'loading' | 'error' | 'success'` for async operations.
+
+## Templates
+
+* **Keep Templates Simple:** Delegate complex logic to the component class. Templates should primarily bind signals and call methods.
+* **Native Control Flow:** Use `@if`, `@for`, `@switch` instead of `*ngIf`, `*ngFor`, `*ngSwitch`.
+    ```html
+    @if (isLoading()) {
+      <app-spinner />
+    } @else if (error()) {
+      <app-error [message]="error()!" />
+    } @else {
+      @for (item of items(); track item.id) {
+        <app-item [data]="item" />
+      } @empty {
+        <p>No items found.</p>
+      }
+    }
+    ```
+* **`@defer` for Lazy Loading:** Use `@defer` blocks to lazily load heavy or below-the-fold components. This reduces initial bundle size and improves Core Web Vitals.
+    ```html
+    @defer (on viewport) {
+      <app-heavy-chart [data]="chartData()" />
+    } @placeholder {
+      <div class="chart-placeholder">Loading chart...</div>
+    } @loading (minimum 300ms) {
+      <app-spinner />
+    }
+    ```
+    Supported triggers: `on viewport`, `on idle`, `on immediate`, `on timer(duration)`, `on interaction(selector)`, `on hover(selector)`, `when condition`.
+* **Prefer Signals over `async` Pipe:** Convert Observables to signals with `toSignal()` and use them directly in templates rather than relying on `async` pipes. Signals integrate better with `@if` / `@for` and OnPush change detection.
+* **`NgOptimizedImage`:** Use `NgOptimizedImage` for all static images.
+
+## Services
+
+* **Single Responsibility:** Each service handles one well-defined concern.
+* **`providedIn: 'root'`:** Use `providedIn: 'root'` for singleton, tree-shakable services.
+* **`inject()` Function:** Always use `inject()` instead of constructor injection.
+    * **Bad:**
+        ```typescript
+        constructor(private http: HttpClient) {}
+        ```
+    * **Good:**
+        ```typescript
+        private http = inject(HttpClient);
+        ```
+* **Functional Guards, Resolvers, and Interceptors:** Use plain functions with `inject()` instead of class-based implementations. Class-based guards and resolvers are deprecated.
+    ```typescript
+    // guard
+    export const authGuard: CanActivateFn = () => {
+      const authService = inject(AuthService);
+      const router = inject(Router);
+      return authService.isAuthenticated() ? true : router.createUrlTree(['/login']);
+    };
+
+    // interceptor
+    export const authInterceptor: HttpInterceptorFn = (req, next) => {
+      const token = inject(AuthService).token();
+      if (token) {
+        req = req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
+      }
+      return next(req);
+    };
+    ```
+
+## Routing
+
+* **Lazy-Loaded Feature Routes:** Each feature defines its own routes file and is lazy-loaded from the root.
+    ```typescript
+    // app.routes.ts
+    export const routes: Routes = [
+      {
+        path: 'dashboard',
+        loadChildren: () => import('./features/dashboard/dashboard.routes')
+          .then(m => m.dashboardRoutes),
+      },
+    ];
+    ```
+* **Route-Level Providers:** Use `providers` in route configs to scope services and stores to a feature.
+    ```typescript
+    export const dashboardRoutes: Routes = [
+      {
+        path: '',
+        providers: [DashboardStore],
+        component: DashboardPageComponent,
+      },
+    ];
+    ```
+
+## RxJS Interop
+
+Use RxJS for complex async workflows (streams, WebSockets, debounced input, retry logic). Use signals for synchronous state and UI bindings. Bridge between them with interop utilities.
+
+* **`toSignal()`:** Convert an Observable to a read-only signal for use in templates and computed values.
+    ```typescript
+    import { toSignal } from '@angular/core/rxjs-interop';
+
+    route = inject(ActivatedRoute);
+    userId = toSignal(this.route.paramMap.pipe(map(p => p.get('id')!)), { initialValue: '' });
+    ```
+* **`toObservable()`:** Convert a signal to an Observable for RxJS pipelines.
+    ```typescript
+    import { toObservable } from '@angular/core/rxjs-interop';
+
+    searchTerm = signal('');
+    results$ = toObservable(this.searchTerm).pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(term => this.searchService.search(term)),
+    );
+    ```
+* **`takeUntilDestroyed()`:** Automatic unsubscription tied to component/directive lifecycle. Replaces manual `takeUntil(destroy$)` patterns.
+    ```typescript
+    import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+    constructor() {
+      this.notifications$.pipe(takeUntilDestroyed()).subscribe(n => this.show(n));
+    }
+    ```
+* **`outputFromObservable()` / `outputToObservable()`:** Bridge between component outputs and Observables when needed for RxJS composition.
+
+## Performance
+
+* **`ChangeDetectionStrategy.OnPush`:** Mandatory on every component. Signals automatically notify Angular of changes, making OnPush safe and performant.
+* **`@defer` Blocks:** Lazy-load non-critical template sections (charts, modals, below-fold content) to reduce initial bundle size.
+* **`afterNextRender()` / `afterRenderEffect()`:** Use for post-render DOM operations (measuring elements, initializing third-party libraries). Replaces `setTimeout` hacks and `ngAfterViewInit` DOM access.
+    ```typescript
+    constructor() {
+      afterNextRender(() => {
+        this.canvasRef().nativeElement.focus();
+      });
+    }
+    ```
+* **Zoneless Readiness:** Write signal-driven code that does not depend on Zone.js for change detection. This prepares the codebase for `provideExperimentalZonelessChangeDetection()` adoption.
+* **`track` in `@for`:** Always provide a `track` expression in `@for` loops for efficient DOM reconciliation.
+
+## Styling
+
+* **Vanilla CSS Only:** Do not use CSS preprocessors. Use native CSS custom properties (variables), `calc()`, container queries, and nesting where supported.
+* **View Encapsulation:** Rely on Angular's default emulated view encapsulation. Component styles are scoped automatically.
+* **`:host` Selector:** Style the component's host element using `:host`. Always set `display: block` (or appropriate layout) on `:host`.
+    ```css
+    :host {
+      display: block;
+    }
+    ```
+* **`:host-context()` for Theming:** Use `:host-context(.dark-theme)` to adapt component styles based on ancestor context (e.g. theme classes).
+* **No `::ng-deep`:** `::ng-deep` is deprecated. Use `:host`, `:host-context`, CSS custom properties, or component API (`input()` / `class` bindings) to influence child styles.
+* **`styleUrl` for Component Styles:** Use `styleUrl` pointing to a `.css` file for components with more than a few style rules. Use inline `styles` only for trivial styling.
+
+## Reactive Forms
+
+* **Prefer Reactive Forms:** Use `FormControl`, `FormGroup`, and `FormArray` from `@angular/forms` for form handling.
+* **Typed Forms:** Always use strongly-typed form controls (`FormControl<string>`, `FormGroup<{ name: FormControl<string> }>`). Do not use untyped variants.
+* **Validation:** Define validators in the component class, not in the template.

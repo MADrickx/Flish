@@ -1,59 +1,53 @@
 # Flish
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.1.4.
+Flish is a VPS-hosted file management system:
 
-## Development server
+- ASP.NET Core backend indexes files from a configured master directory
+- PostgreSQL stores file metadata and auth users
+- Angular client manages files (list, upload, download, delete)
+- Docker Compose runs API + DB + Web on the VPS
 
-To start a local development server, run:
+## Repository Structure
 
-```bash
-ng serve
-```
+- `back-end/flish/flish/` - ASP.NET Core API
+- `front-client/` - Angular 21 client
+- `infra/` - Docker and deployment assets
+- `docs/` - architecture, API, operations
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Local Development
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+### Backend
 
 ```bash
-ng generate --help
+cd back-end/flish/flish
+dotnet restore
+dotnet run
 ```
 
-## Building
-
-To build the project run:
+### Frontend
 
 ```bash
-ng build
+cd front-client
+npm install
+npm start
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+## Configuration Overview
 
-## Running unit tests
+Backend configuration lives in `back-end/flish/flish/appsettings*.json`.
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+Important settings:
 
-```bash
-ng test
-```
+- `Storage:MasterDirectory` - root directory Flish can manage
+- `Storage:MaxUploadBytes` - upload size limit
+- `Indexing:ScanIntervalSeconds` - periodic scanner interval
+- `BasicAuth:SeedUser` - first admin user for v1
+- `ConnectionStrings:DefaultConnection` - PostgreSQL connection
 
-## Running end-to-end tests
+## CI/CD
 
-For end-to-end (e2e) testing, run:
+GitHub Actions workflows are in `.github/workflows/`:
 
-```bash
-ng e2e
-```
+- `ci.yml` - build + test checks
+- `deploy.yml` - deploy to VPS over SSH and run Docker Compose
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
