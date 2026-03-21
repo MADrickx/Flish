@@ -1,0 +1,56 @@
+:host {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #000;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  outline: none;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.close-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-soft);
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.close-btn:hover {
+  color: var(--text);
+}
+
+video {
+  width: 100%;
+  display: block;
+  max-height: 75dvh;
+}
+
+.hint {
+  text-align: center;
+  padding: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--text-soft);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}

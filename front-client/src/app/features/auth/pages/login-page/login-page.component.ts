@@ -2,33 +2,14 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { AuthStateService } from '../../../core/auth/auth-state.service';
+import { AuthStateService } from '../../../../core/auth/auth-state.service';
 
 @Component({
   selector: 'app-login-page',
   imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './login-page.component.css',
-  template: `
-    <section class="container">
-      <h1>Flish Login</h1>
-      <p>Access your VPS file index securely.</p>
-      <form (ngSubmit)="login()">
-        <label>
-          Username
-          <input type="text" name="username" [(ngModel)]="username" required />
-        </label>
-        <label>
-          Password
-          <input type="password" name="password" [(ngModel)]="password" required />
-        </label>
-        <button type="submit" [disabled]="loading()">Sign in</button>
-      </form>
-      @if (error()) {
-        <p class="error">{{ error() }}</p>
-      }
-    </section>
-  `
+  templateUrl: './login-page.component.html',
 })
 export class LoginPageComponent {
   private readonly authState = inject(AuthStateService);
@@ -58,4 +39,3 @@ export class LoginPageComponent {
     });
   }
 }
-

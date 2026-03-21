@@ -1,0 +1,18 @@
+<section class="container">
+  <h1>Flish Login</h1>
+  <p>Access your VPS file index securely.</p>
+  <form (ngSubmit)="login()">
+    <label>
+      Username
+      <input type="text" name="username" [(ngModel)]="username" required />
+    </label>
+    <label>
+      Password
+      <input type="password" name="password" [(ngModel)]="password" required />
+    </label>
+    <button type="submit" [disabled]="loading()">Sign in</button>
+  </form>
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+</section>

@@ -1,4 +1,5 @@
 using flish.Features.Auth;
+using Xunit;
 
 namespace flish.Tests;
 

@@ -1,0 +1,7 @@
+<div class="viewer-content" #viewer (click)="$event.stopPropagation()">
+  <button class="nav-btn prev" type="button" (click)="prev.emit()">&#8249;</button>
+  <img [src]="src()" [alt]="title()" />
+  <button class="nav-btn next" type="button" (click)="next.emit()">&#8250;</button>
+  <div class="caption">{{ title() }}</div>
+  <div class="hint">Arrow keys: navigate &middot; Esc: close</div>
+</div>

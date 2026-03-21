@@ -1,0 +1,28 @@
+<div class="row">
+  <span class="track-name">{{ title() }}</span>
+  <div class="controls">
+    @if (isPlaying()) {
+      <button type="button" (click)="onPause()">⏸</button>
+    } @else {
+      <button type="button" (click)="onResume()">▶</button>
+    }
+    <button type="button" (click)="onNext()">⏭</button>
+    <button type="button" (click)="stopped.emit()">⏹</button>
+  </div>
+</div>
+<div class="progress-wrap">
+  <input
+    type="range"
+    min="0"
+    [max]="duration()"
+    [value]="currentTime()"
+    (input)="onSeek($event)"
+  />
+</div>
+<audio
+  #audioEl
+  [src]="src()"
+  (timeupdate)="onTimeUpdate()"
+  (loadedmetadata)="onMetadata()"
+  (ended)="onEnded()"
+></audio>

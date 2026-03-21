@@ -1,0 +1,56 @@
+<section class="container">
+  @if (store.nowPlaying(); as track) {
+    <app-audio-player-bar
+      [src]="store.streamUrl()!"
+      [title]="track.fileName"
+      [playing]="store.playbackStatus() === 'playing'"
+      (paused)="store.pause()"
+      (resumed)="store.resume()"
+      (ended)="store.playNext()"
+      (stopped)="store.stop()"
+    />
+  }
+
+  <header>
+    <h1>Audio</h1>
+    <div class="search-field">
+      <input
+        type="text"
+        [ngModel]="store.query()"
+        (ngModelChange)="onQueryChange($event)"
+        placeholder="Search audio..."
+      />
+    </div>
+  </header>
+
+  @if (store.loading()) {
+    <app-loading message="Loading audio..." />
+  } @else if (store.error()) {
+    <p class="error">{{ store.error() }}</p>
+  } @else if (store.count() === 0) {
+    <app-empty-state icon="🎵" message="No audio files found." />
+  } @else {
+    <ul class="track-list">
+      @for (item of store.items(); track item.id) {
+        <li
+          class="track-row"
+          [class.active]="store.nowPlaying()?.id === item.id"
+          (click)="store.play(item)"
+        >
+          <span class="icon">🎵</span>
+          <span class="name">{{ item.fileName }}</span>
+          <span class="meta">{{ toBytes(item.sizeBytes) }}</span>
+          <button class="queue-btn" type="button" (click)="onAddToQueue($event, item)">+Q</button>
+        </li>
+      }
+    </ul>
+  }
+
+  @if (store.totalPages() > 1) {
+    <footer class="pager">
+      <button class="btn" (click)="prevPage()" [disabled]="store.page() <= 1">Prev</button>
+      <span>{{ store.page() }} / {{ store.totalPages() }}</span>
+      <button class="btn" (click)="nextPage()" [disabled]="store.page() >= store.totalPages()">Next</button>
+    </footer>
+  }
+</section>

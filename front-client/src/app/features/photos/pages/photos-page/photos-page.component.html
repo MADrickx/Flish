@@ -1,0 +1,49 @@
+@if (store.viewing(); as photo) {
+  <app-photo-viewer
+    [src]="store.viewUrl()!"
+    [title]="photo.fileName"
+    (closed)="store.closeViewer()"
+    (next)="store.viewNext()"
+    (prev)="store.viewPrev()"
+  />
+}
+
+<section class="container">
+  <header>
+    <h1>Photos</h1>
+    <div class="search-field">
+      <input
+        type="text"
+        [ngModel]="store.query()"
+        (ngModelChange)="onQueryChange($event)"
+        placeholder="Search photos..."
+      />
+    </div>
+  </header>
+
+  @if (store.loading()) {
+    <app-loading message="Loading photos..." />
+  } @else if (store.error()) {
+    <p class="error">{{ store.error() }}</p>
+  } @else if (store.count() === 0) {
+    <app-empty-state icon="📷" message="No photos found." />
+  } @else {
+    <div class="grid">
+      @for (item of store.items(); track item.id) {
+        <app-photo-card
+          [thumbUrl]="api.downloadUrl(item.id)"
+          [fileName]="item.fileName"
+          (selected)="store.view(item)"
+        />
+      }
+    </div>
+  }
+
+  @if (store.totalPages() > 1) {
+    <footer class="pager">
+      <button class="btn" (click)="prevPage()" [disabled]="store.page() <= 1">Prev</button>
+      <span>{{ store.page() }} / {{ store.totalPages() }}</span>
+      <button class="btn" (click)="nextPage()" [disabled]="store.page() >= store.totalPages()">Next</button>
+    </footer>
+  }
+</section>
