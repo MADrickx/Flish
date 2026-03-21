@@ -10,6 +10,12 @@ Authentication: HTTP Basic Auth.
   - Validates credentials from Authorization header
   - Response: `200 OK` `{ "username": "..." }`
 
+- `POST /api/auth/change-password`
+  - Body: `{ "currentPassword": "...", "newPassword": "..." }`
+  - New password must be at least 8 characters
+  - Rate-limited
+  - Response: `200 OK` `{ "message": "Password changed." }`
+
 ## Files
 
 - `GET /api/files?page=1&pageSize=50&query=&extension=&category=`
@@ -52,6 +58,19 @@ Authentication: HTTP Basic Auth.
 
 - `GET /health/live`
 - `GET /health/ready`
+
+## Error Responses
+
+All errors return structured JSON:
+
+```json
+{ "error": "description", "status": 400 }
+```
+
+- `400` for validation errors (path traversal, bad input)
+- `401` for unauthorized requests
+- `404` for missing resources
+- `500` for unexpected server errors (message hidden in production)
 
 ## DTOs
 

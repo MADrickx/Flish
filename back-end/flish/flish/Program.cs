@@ -60,6 +60,21 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseExceptionHandler(error => error.Run(async context =>
+{
+    var exception = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+    var statusCode = exception switch
+    {
+        InvalidOperationException => StatusCodes.Status400BadRequest,
+        FileNotFoundException => StatusCodes.Status404NotFound,
+        _ => StatusCodes.Status500InternalServerError
+    };
+    context.Response.StatusCode = statusCode;
+    context.Response.ContentType = "application/json";
+    var message = app.Environment.IsDevelopment() ? exception?.Message ?? "Unexpected error" : "An error occurred";
+    await context.Response.WriteAsJsonAsync(new { error = message, status = statusCode });
+}));
+
 using (var scope = app.Services.CreateScope())
 {
     var seeder = scope.ServiceProvider.GetRequiredService<AuthUserSeeder>();
@@ -81,6 +96,36 @@ api.MapPost("/auth/login", (ClaimsPrincipal user) =>
     var username = user.Identity?.Name ?? string.Empty;
     return Results.Ok(new AuthLoginResponse(username));
 });
+
+api.MapPost("/auth/change-password", async (
+        ChangePasswordRequest request,
+        ClaimsPrincipal user,
+        FlishDbContext dbContext,
+        IPasswordHasher passwordHasher,
+        CancellationToken cancellationToken) =>
+    {
+        var username = user.Identity?.Name;
+        if (string.IsNullOrWhiteSpace(username))
+            return Results.Unauthorized();
+
+        var appUser = await dbContext.Users.FirstOrDefaultAsync(x => x.Username == username, cancellationToken);
+        if (appUser is null)
+            return Results.NotFound();
+
+        if (!passwordHasher.Verify(request.CurrentPassword, appUser.PasswordHash, appUser.PasswordSalt))
+            return Results.BadRequest(new { error = "Current password is incorrect.", status = 400 });
+
+        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
+            return Results.BadRequest(new { error = "New password must be at least 8 characters.", status = 400 });
+
+        var (hash, salt) = passwordHasher.HashPassword(request.NewPassword);
+        appUser.PasswordHash = hash;
+        appUser.PasswordSalt = salt;
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return Results.Ok(new { message = "Password changed." });
+    })
+    .RequireRateLimiting("writes");
 
 api.MapGet("/files", async (
         int page,

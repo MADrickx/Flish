@@ -29,6 +29,10 @@ export const routes: Routes = [
         loadChildren: () => import('./features/photos/photos.routes').then((m) => m.photosRoutes),
       },
       {
+        path: 'settings',
+        loadChildren: () => import('./features/settings/settings.routes').then((m) => m.settingsRoutes),
+      },
+      {
         path: '',
         redirectTo: 'files',
         pathMatch: 'full',

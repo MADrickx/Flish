@@ -28,6 +28,29 @@
 3. Trigger rebuild:
    - `POST /api/index/rebuild`
 
+## Database Migrations
+
+Migrations run automatically on startup (`MigrateAsync`).
+
+To create a new migration after changing entities or `FlishDbContext.OnModelCreating`:
+
+```bash
+cd back-end/flish/flish
+dotnet ef migrations add <MigrationName>
+```
+
+To apply manually (normally not needed since startup handles it):
+
+```bash
+dotnet ef database update
+```
+
+To revert the last migration:
+
+```bash
+dotnet ef migrations remove
+```
+
 ## Security Checklist
 
 - Enforce HTTPS at reverse proxy

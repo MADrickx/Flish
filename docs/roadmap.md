@@ -65,12 +65,14 @@ Status of what's been built and what remains to deliver v1 of the multimedia VPS
 - [x] **Category filter in UI**: dropdown in files page toolbar filters by video/audio/photo/document/other
 - [x] **22 tests passing** across 5 test files (files, video, audio, photos stores + app)
 
-### Phase 4 -- Quality & Hardening (medium priority)
+### Phase 4 -- Quality & Hardening (done)
 
-- [ ] **Backend test project**: test FilePathResolver, PasswordHasher, MimeTypeMap, FileIndexer, stream endpoint
-- [ ] **EF Core migrations**: switch from `EnsureCreated` to proper migration workflow
-- [ ] **Error handling**: global error interceptor on frontend, structured error responses on backend
-- [ ] **Settings feature**: UI page to view index status, trigger rebuild, change password
+- [x] **Backend test project**: xUnit project with tests for FilePathResolver, PasswordHasher, MimeTypeMap
+- [x] **EF Core migrations**: switched from `EnsureCreated` to `MigrateAsync`, documented commands
+- [x] **Error handling**: structured JSON error responses on backend + global error interceptor on frontend (401 redirect)
+- [x] **Settings feature**: index status page, rebuild trigger, change password (frontend + backend endpoint)
+- [x] **Dev proxy**: `proxy.conf.json` for `ng serve` API forwarding
+- [x] **26 frontend tests passing** across 6 test files
 
 ### Phase 5 -- Polish (lower priority)
 

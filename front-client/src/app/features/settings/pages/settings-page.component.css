@@ -1,0 +1,106 @@
+:host {
+  display: block;
+}
+
+.container {
+  padding: 1.15rem;
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+h1 {
+  margin: 0 0 1.25rem;
+  font-size: 1.45rem;
+}
+
+h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0 0 1rem;
+}
+
+dt {
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+
+dd {
+  margin: 0;
+  font-weight: 500;
+}
+
+.password-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+label {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+
+input[type='password'] {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.65rem;
+  background: var(--bg);
+  color: var(--text);
+}
+
+input:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+}
+
+.btn {
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: filter 0.15s ease;
+}
+
+.btn:hover {
+  filter: brightness(1.08);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: linear-gradient(180deg, var(--primary), var(--primary-strong));
+  color: #fff;
+}
+
+.state {
+  color: var(--text-soft);
+}
+
+.error {
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+.success {
+  color: #4ade80;
+  font-size: 0.9rem;
+}

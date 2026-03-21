@@ -42,6 +42,7 @@ export class ShellComponent {
     { path: '/video', label: 'Video', icon: '🎬', exact: false },
     { path: '/audio', label: 'Audio', icon: '🎵', exact: false },
     { path: '/photos', label: 'Photos', icon: '📷', exact: false },
+    { path: '/settings', label: 'Settings', icon: '⚙', exact: false },
   ];
 
   protected logout(): void {
