@@ -133,13 +133,19 @@ api.MapGet("/files", async (
         string? query,
         string? extension,
         string? category,
+        long? minSize,
+        long? maxSize,
+        DateTime? modifiedAfter,
+        DateTime? modifiedBefore,
         FileIndexRepository repo,
         CancellationToken cancellationToken) =>
     {
         page = Math.Max(1, page == 0 ? 1 : page);
         pageSize = Math.Clamp(pageSize == 0 ? 50 : pageSize, 1, 200);
 
-        var (items, total) = await repo.GetPagedFilteredAsync(page, pageSize, query, extension, category, cancellationToken);
+        var (items, total) = await repo.GetPagedFilteredAsync(
+            page, pageSize, query, extension, category,
+            minSize, maxSize, modifiedAfter, modifiedBefore, cancellationToken);
         return Results.Ok(new PagedFilesResponse(items, page, pageSize, total));
     })
     .WithName("GetFiles");

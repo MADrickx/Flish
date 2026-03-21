@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { formatBytes, MediaCategory } from '../../../core/models/media.models';
 import { FilesApiService } from '../services/files-api.service';
 import { FilesStore } from '../store/files.store';
+import { LoadingSpinnerComponent } from '../../../core/components/loading-spinner.component';
 
 const CATEGORIES: { value: MediaCategory | ''; label: string }[] = [
   { value: '', label: 'All' },
@@ -16,7 +17,7 @@ const CATEGORIES: { value: MediaCategory | ''; label: string }[] = [
 
 @Component({
   selector: 'app-files-page',
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe, LoadingSpinnerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './files-page.component.css',
   template: `
@@ -54,9 +55,9 @@ const CATEGORIES: { value: MediaCategory | ''; label: string }[] = [
       </div>
 
       @if (store.loading()) {
-        <p class="state">Loading files...</p>
+        <app-loading message="Loading files..." />
       } @else if (store.error()) {
-        <p class="state error">{{ store.error() }}</p>
+        <p class="error">{{ store.error() }}</p>
       } @else {
         <div class="table-wrap">
           <table>

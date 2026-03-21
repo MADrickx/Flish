@@ -7,12 +7,14 @@ namespace flish.Infrastructure.Persistence;
 public class FileIndexRepository(FlishDbContext dbContext) : Repository<FileIndexEntry>(dbContext)
 {
     public async Task<(List<FileItemDto> Items, int Total)> GetPagedFilteredAsync(
-        int page, int pageSize, string? query, string? extension, string? category, CancellationToken ct)
+        int page, int pageSize, string? query, string? extension, string? category,
+        long? minSize, long? maxSize, DateTime? modifiedAfter, DateTime? modifiedBefore,
+        CancellationToken ct)
     {
         var q = DbSet.AsNoTracking().Where(x => !x.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(query))
-            q = q.Where(x => x.RelativePath.Contains(query));
+            q = q.Where(x => x.FileName.Contains(query) || x.RelativePath.Contains(query));
 
         if (!string.IsNullOrWhiteSpace(extension))
         {
@@ -25,6 +27,18 @@ public class FileIndexRepository(FlishDbContext dbContext) : Repository<FileInde
 
         if (!string.IsNullOrWhiteSpace(category))
             q = q.Where(x => x.Category == category);
+
+        if (minSize.HasValue)
+            q = q.Where(x => x.SizeBytes >= minSize.Value);
+
+        if (maxSize.HasValue)
+            q = q.Where(x => x.SizeBytes <= maxSize.Value);
+
+        if (modifiedAfter.HasValue)
+            q = q.Where(x => x.LastWriteUtc >= modifiedAfter.Value);
+
+        if (modifiedBefore.HasValue)
+            q = q.Where(x => x.LastWriteUtc <= modifiedBefore.Value);
 
         var total = await q.CountAsync(ct);
         var items = await q

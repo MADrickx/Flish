@@ -53,7 +53,7 @@ select {
   border: 1px solid var(--border);
   border-radius: 0.6rem;
   padding: 0.52rem 0.68rem;
-  background: #0a1430;
+  background: var(--bg);
   color: var(--text);
 }
 
@@ -66,7 +66,7 @@ input:focus-visible {
   border: 1px solid var(--border);
   border-radius: 0.9rem;
   overflow: auto;
-  background: linear-gradient(180deg, #0b1733, #0d1a39);
+  background: var(--surface);
   box-shadow: var(--shadow);
   max-height: 68dvh;
 }
@@ -100,7 +100,7 @@ input:focus-visible {
 }
 
 .btn.ghost {
-  background: #182a52;
+  background: var(--surface-elev);
   border-color: var(--border);
 }
 
@@ -129,7 +129,7 @@ thead th {
   font-size: 0.83rem;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  background: rgba(10, 22, 48, 0.94);
+  background: var(--surface);
   backdrop-filter: blur(4px);
 }
 
@@ -232,7 +232,7 @@ tbody tr:hover td {
   tr {
     border: 1px solid var(--border);
     border-radius: 0.85rem;
-    background: linear-gradient(180deg, #0b1733, #0d1a39);
+    background: var(--surface);
     margin-bottom: 0.75rem;
     overflow: hidden;
   }

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, ElementRef, viewChild, afterNextRender } from '@angular/core';
 
 @Component({
   selector: 'app-photo-viewer',
@@ -20,25 +20,33 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
       background: rgba(0, 0, 0, 0.88);
       backdrop-filter: blur(8px);
       cursor: zoom-out;
+      outline: none;
     }
     .viewer-content {
       position: relative;
-      max-width: 90vw;
-      max-height: 90dvh;
+      max-width: 92vw;
+      max-height: 92dvh;
       cursor: default;
+      animation: fadeIn 0.2s ease;
     }
     img {
       max-width: 90vw;
-      max-height: 85dvh;
+      max-height: 82dvh;
       object-fit: contain;
       border-radius: var(--radius);
       display: block;
     }
     .caption {
       text-align: center;
-      margin-top: 0.5rem;
-      color: var(--text-soft);
-      font-size: 0.9rem;
+      margin-top: 0.45rem;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.88rem;
+    }
+    .hint {
+      text-align: center;
+      margin-top: 0.2rem;
+      color: rgba(255, 255, 255, 0.35);
+      font-size: 0.72rem;
     }
     .nav-btn {
       position: absolute;
@@ -48,26 +56,39 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
       border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 50%;
       color: #fff;
-      width: 2.5rem;
-      height: 2.5rem;
-      font-size: 1.2rem;
+      width: 2.8rem;
+      height: 2.8rem;
+      font-size: 1.3rem;
       cursor: pointer;
       display: grid;
       place-items: center;
-      transition: background 0.15s ease;
+      transition: background 0.15s ease, transform 0.1s ease;
     }
     .nav-btn:hover {
       background: rgba(255, 255, 255, 0.15);
     }
-    .prev { left: -3.5rem; }
-    .next { right: -3.5rem; }
+    .nav-btn:active {
+      transform: translateY(-50%) scale(0.95);
+    }
+    .prev { left: 1rem; }
+    .next { right: 1rem; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.97); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @media (max-width: 600px) {
+      .nav-btn { width: 2.2rem; height: 2.2rem; font-size: 1.1rem; }
+      .prev { left: 0.4rem; }
+      .next { right: 0.4rem; }
+    }
   `,
   template: `
-    <div class="viewer-content" (click)="$event.stopPropagation()">
+    <div class="viewer-content" #viewer (click)="$event.stopPropagation()">
       <button class="nav-btn prev" type="button" (click)="prev.emit()">&#8249;</button>
       <img [src]="src()" [alt]="title()" />
       <button class="nav-btn next" type="button" (click)="next.emit()">&#8250;</button>
       <div class="caption">{{ title() }}</div>
+      <div class="hint">Arrow keys: navigate &middot; Esc: close</div>
     </div>
   `,
 })
@@ -77,4 +98,13 @@ export class PhotoViewerComponent {
   closed = output<void>();
   next = output<void>();
   prev = output<void>();
+
+  private readonly viewer = viewChild.required<ElementRef>('viewer');
+
+  constructor() {
+    afterNextRender(() => {
+      const host = (this.viewer().nativeElement as HTMLElement).closest('app-photo-viewer') as HTMLElement | null;
+      host?.focus();
+    });
+  }
 }

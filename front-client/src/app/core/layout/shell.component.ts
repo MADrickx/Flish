@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
 import { AuthStateService } from '../auth/auth-state.service';
+import { ThemeService } from '../services/theme.service';
 
 @Component({
   selector: 'app-shell',
@@ -23,8 +24,11 @@ import { AuthStateService } from '../auth/auth-state.service';
       </ul>
 
       <div class="sidebar-footer">
+        <button class="theme-toggle" type="button" (click)="theme.toggle()" [title]="theme.current() === 'dark' ? 'Switch to light' : 'Switch to dark'">
+          {{ theme.current() === 'dark' ? '☀' : '🌙' }}
+        </button>
         <span class="user-badge">{{ auth.username() }}</span>
-        <button class="btn ghost" type="button" (click)="logout()">Logout</button>
+        <button class="btn-logout" type="button" (click)="logout()">Logout</button>
       </div>
     </nav>
 
@@ -35,6 +39,7 @@ import { AuthStateService } from '../auth/auth-state.service';
 })
 export class ShellComponent {
   protected readonly auth = inject(AuthStateService);
+  protected readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
 
   protected readonly navLinks = [

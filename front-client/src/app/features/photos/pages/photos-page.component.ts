@@ -4,11 +4,13 @@ import { PhotosStore } from '../store/photos.store';
 import { PhotoCardComponent } from '../components/photo-card.component';
 import { PhotoViewerComponent } from '../components/photo-viewer.component';
 import { PhotosApiService } from '../services/photos-api.service';
+import { LoadingSpinnerComponent } from '../../../core/components/loading-spinner.component';
+import { EmptyStateComponent } from '../../../core/components/empty-state.component';
 
 @Component({
   selector: 'app-photos-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, PhotoCardComponent, PhotoViewerComponent],
+  imports: [FormsModule, PhotoCardComponent, PhotoViewerComponent, LoadingSpinnerComponent, EmptyStateComponent],
   styleUrl: './photos-page.component.css',
   template: `
     @if (store.viewing(); as photo) {
@@ -35,9 +37,11 @@ import { PhotosApiService } from '../services/photos-api.service';
       </header>
 
       @if (store.loading()) {
-        <p class="state">Loading photos...</p>
+        <app-loading message="Loading photos..." />
       } @else if (store.error()) {
-        <p class="state error">{{ store.error() }}</p>
+        <p class="error">{{ store.error() }}</p>
+      } @else if (store.count() === 0) {
+        <app-empty-state icon="📷" message="No photos found." />
       } @else {
         <div class="grid">
           @for (item of store.items(); track item.id) {
@@ -46,8 +50,6 @@ import { PhotosApiService } from '../services/photos-api.service';
               [fileName]="item.fileName"
               (selected)="store.view(item)"
             />
-          } @empty {
-            <p class="state">No photos found.</p>
           }
         </div>
       }

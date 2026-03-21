@@ -41,7 +41,7 @@ label {
 input {
   border: 1px solid var(--border);
   border-radius: 0.65rem;
-  background: #0a1430;
+  background: var(--bg);
   color: var(--text);
   padding: 0.62rem 0.72rem;
   transition: border-color 0.2s ease;

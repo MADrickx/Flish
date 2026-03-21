@@ -2,12 +2,14 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AudioStore } from '../store/audio.store';
 import { AudioPlayerBarComponent } from '../components/audio-player-bar.component';
+import { LoadingSpinnerComponent } from '../../../core/components/loading-spinner.component';
+import { EmptyStateComponent } from '../../../core/components/empty-state.component';
 import { formatBytes, MediaItem } from '../../../core/models/media.models';
 
 @Component({
   selector: 'app-audio-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, AudioPlayerBarComponent],
+  imports: [FormsModule, AudioPlayerBarComponent, LoadingSpinnerComponent, EmptyStateComponent],
   styleUrl: './audio-page.component.css',
   template: `
     <section class="container">
@@ -36,9 +38,11 @@ import { formatBytes, MediaItem } from '../../../core/models/media.models';
       </header>
 
       @if (store.loading()) {
-        <p class="state">Loading audio...</p>
+        <app-loading message="Loading audio..." />
       } @else if (store.error()) {
-        <p class="state error">{{ store.error() }}</p>
+        <p class="error">{{ store.error() }}</p>
+      } @else if (store.count() === 0) {
+        <app-empty-state icon="🎵" message="No audio files found." />
       } @else {
         <ul class="track-list">
           @for (item of store.items(); track item.id) {
@@ -52,8 +56,6 @@ import { formatBytes, MediaItem } from '../../../core/models/media.models';
               <span class="meta">{{ toBytes(item.sizeBytes) }}</span>
               <button class="queue-btn" type="button" (click)="onAddToQueue($event, item)">+Q</button>
             </li>
-          } @empty {
-            <li class="state">No audio files found.</li>
           }
         </ul>
       }

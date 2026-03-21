@@ -1,14 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { VideoStore } from '../store/video.store';
 import { VideoCardComponent } from '../components/video-card.component';
 import { VideoPlayerComponent } from '../components/video-player.component';
+import { LoadingSpinnerComponent } from '../../../core/components/loading-spinner.component';
+import { EmptyStateComponent } from '../../../core/components/empty-state.component';
 import { formatBytes } from '../../../core/models/media.models';
 
 @Component({
   selector: 'app-video-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, VideoCardComponent, VideoPlayerComponent],
+  imports: [FormsModule, VideoCardComponent, VideoPlayerComponent, LoadingSpinnerComponent, EmptyStateComponent],
   styleUrl: './video-page.component.css',
   template: `
     <section class="container">
@@ -33,9 +35,11 @@ import { formatBytes } from '../../../core/models/media.models';
       </header>
 
       @if (store.loading()) {
-        <p class="state">Loading videos...</p>
+        <app-loading message="Loading videos..." />
       } @else if (store.error()) {
-        <p class="state error">{{ store.error() }}</p>
+        <p class="error">{{ store.error() }}</p>
+      } @else if (!store.hasItems()) {
+        <app-empty-state icon="🎬" message="No videos found." />
       } @else {
         <div class="grid">
           @for (item of store.items(); track item.id) {
@@ -45,17 +49,15 @@ import { formatBytes } from '../../../core/models/media.models';
               [size]="toBytes(item.sizeBytes)"
               (selected)="store.play(item)"
             />
-          } @empty {
-            <p class="state">No videos found.</p>
           }
         </div>
       }
 
       @if (store.totalPages() > 1) {
         <footer class="pager">
-          <button class="btn ghost" (click)="prevPage()" [disabled]="store.page() <= 1">Prev</button>
+          <button class="btn" (click)="prevPage()" [disabled]="store.page() <= 1">Prev</button>
           <span>{{ store.page() }} / {{ store.totalPages() }}</span>
-          <button class="btn ghost" (click)="nextPage()" [disabled]="store.page() >= store.totalPages()">Next</button>
+          <button class="btn" (click)="nextPage()" [disabled]="store.page() >= store.totalPages()">Next</button>
         </footer>
       }
     </section>
