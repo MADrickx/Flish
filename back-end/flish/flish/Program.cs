@@ -21,8 +21,8 @@ builder.Services.Configure<BasicAuthOptions>(builder.Configuration.GetSection(Ba
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required.");
-builder.Services.AddDbContext<FlishDbContext>(options => options.UseNpgsql(connectionString));
-builder.Services.AddDbContextFactory<FlishDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddPooledDbContextFactory<FlishDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<FlishDbContext>>().CreateDbContext());
 
 builder.Services.Configure<FormOptions>(options =>
 {
