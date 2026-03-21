@@ -46,15 +46,8 @@ public sealed class FileIndexer(
                 var relativePath = _pathResolver.ToRelativePath(absolutePath);
                 var fileInfo = new FileInfo(absolutePath);
                 var extension = fileInfo.Extension.TrimStart('.').ToLowerInvariant();
-                var mimeType = extension switch
-                {
-                    "txt" => "text/plain",
-                    "json" => "application/json",
-                    "pdf" => "application/pdf",
-                    "png" => "image/png",
-                    "jpg" or "jpeg" => "image/jpeg",
-                    _ => "application/octet-stream"
-                };
+                var mimeType = MimeTypeMap.GetMimeType(extension);
+                var category = MimeTypeMap.GetCategory(extension);
 
                 if (existing.TryGetValue(relativePath, out var entity))
                 {
@@ -62,6 +55,7 @@ public sealed class FileIndexer(
                     entity.Extension = extension;
                     entity.SizeBytes = fileInfo.Length;
                     entity.MimeType = mimeType;
+                    entity.Category = category;
                     entity.LastWriteUtc = fileInfo.LastWriteTimeUtc;
                     entity.CreatedUtc = fileInfo.CreationTimeUtc;
                     entity.IsDeleted = false;
@@ -77,6 +71,7 @@ public sealed class FileIndexer(
                         Extension = extension,
                         SizeBytes = fileInfo.Length,
                         MimeType = mimeType,
+                        Category = category,
                         LastWriteUtc = fileInfo.LastWriteTimeUtc,
                         CreatedUtc = fileInfo.CreationTimeUtc,
                         IsDeleted = false,

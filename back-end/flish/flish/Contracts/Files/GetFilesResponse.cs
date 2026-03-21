@@ -7,6 +7,7 @@ public sealed record FileItemDto(
     string Extension,
     long SizeBytes,
     string MimeType,
+    string Category,
     DateTime LastWriteUtc,
     DateTime IndexedAtUtc
 );

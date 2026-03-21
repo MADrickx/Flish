@@ -1,18 +1,2 @@
-export type FileItem = {
-  id: string;
-  relativePath: string;
-  fileName: string;
-  extension: string;
-  sizeBytes: number;
-  mimeType: string;
-  lastWriteUtc: string;
-  indexedAtUtc: string;
-};
-
-export type PagedFilesResponse = {
-  items: FileItem[];
-  page: number;
-  pageSize: number;
-  total: number;
-};
-
+export type { MediaItem as FileItem, PagedResponse as PagedFilesResponse, MediaCategory } from '../../../core/models/media.models';
+export { formatBytes } from '../../../core/models/media.models';

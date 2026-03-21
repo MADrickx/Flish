@@ -48,6 +48,8 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddSingleton<FilePathResolver>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<AuthUserSeeder>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<FileIndexRepository>();
 builder.Services.AddSingleton<IFileIndexer, FileIndexer>();
 builder.Services.AddHostedService<IndexingBackgroundService>();
 
@@ -85,77 +87,31 @@ api.MapGet("/files", async (
         int pageSize,
         string? query,
         string? extension,
-        FlishDbContext dbContext,
+        string? category,
+        FileIndexRepository repo,
         CancellationToken cancellationToken) =>
     {
         page = Math.Max(1, page == 0 ? 1 : page);
         pageSize = Math.Clamp(pageSize == 0 ? 50 : pageSize, 1, 200);
 
-        var filesQuery = dbContext.FileIndexEntries
-            .AsNoTracking()
-            .Where(x => !x.IsDeleted);
-
-        if (!string.IsNullOrWhiteSpace(query))
-        {
-            filesQuery = filesQuery.Where(x => x.RelativePath.Contains(query));
-        }
-
-        if (!string.IsNullOrWhiteSpace(extension))
-        {
-            var normalized = extension.TrimStart('.').ToLowerInvariant();
-            filesQuery = filesQuery.Where(x => x.Extension == normalized);
-        }
-
-        var total = await filesQuery.CountAsync(cancellationToken);
-        var items = await filesQuery
-            .OrderBy(x => x.RelativePath)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(x => new FileItemDto(
-                x.Id,
-                x.RelativePath,
-                x.FileName,
-                x.Extension,
-                x.SizeBytes,
-                x.MimeType,
-                x.LastWriteUtc,
-                x.IndexedAtUtc
-            ))
-            .ToListAsync(cancellationToken);
-
+        var (items, total) = await repo.GetPagedFilteredAsync(page, pageSize, query, extension, category, cancellationToken);
         return Results.Ok(new PagedFilesResponse(items, page, pageSize, total));
     })
     .WithName("GetFiles");
 
-api.MapGet("/files/{id:guid}", async (Guid id, FlishDbContext dbContext, CancellationToken cancellationToken) =>
+api.MapGet("/files/{id:guid}", async (Guid id, FileIndexRepository repo, CancellationToken cancellationToken) =>
 {
-    var item = await dbContext.FileIndexEntries
-        .AsNoTracking()
-        .Where(x => !x.IsDeleted && x.Id == id)
-        .Select(x => new FileItemDto(
-            x.Id,
-            x.RelativePath,
-            x.FileName,
-            x.Extension,
-            x.SizeBytes,
-            x.MimeType,
-            x.LastWriteUtc,
-            x.IndexedAtUtc
-        ))
-        .FirstOrDefaultAsync(cancellationToken);
-
+    var item = await repo.GetDtoByIdAsync(id, cancellationToken);
     return item is null ? Results.NotFound() : Results.Ok(item);
 });
 
 api.MapGet("/files/{id:guid}/download", async (
         Guid id,
-        FlishDbContext dbContext,
+        FileIndexRepository repo,
         FilePathResolver pathResolver,
         CancellationToken cancellationToken) =>
     {
-        var entry = await dbContext.FileIndexEntries
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
+        var entry = await repo.GetActiveByIdAsync(id, cancellationToken);
 
         if (entry is null)
         {
@@ -172,10 +128,65 @@ api.MapGet("/files/{id:guid}/download", async (
         return Results.File(stream, entry.MimeType, entry.FileName, enableRangeProcessing: true);
     });
 
+api.MapGet("/files/{id:guid}/stream", async (
+        Guid id,
+        FileIndexRepository repo,
+        FilePathResolver pathResolver,
+        HttpContext httpContext,
+        CancellationToken cancellationToken) =>
+    {
+        var entry = await repo.GetActiveByIdAsync(id, cancellationToken);
+
+        if (entry is null)
+            return Results.NotFound();
+
+        var absolutePath = pathResolver.ToAbsolutePath(entry.RelativePath);
+        if (!File.Exists(absolutePath))
+            return Results.NotFound();
+
+        var fileLength = new FileInfo(absolutePath).Length;
+        var rangeHeader = httpContext.Request.Headers.Range.ToString();
+
+        if (!string.IsNullOrWhiteSpace(rangeHeader) && rangeHeader.StartsWith("bytes="))
+        {
+            var rangeParts = rangeHeader["bytes=".Length..].Split('-');
+            var start = long.Parse(rangeParts[0]);
+            var end = rangeParts.Length > 1 && long.TryParse(rangeParts[1], out var e) && e > 0
+                ? Math.Min(e, fileLength - 1)
+                : fileLength - 1;
+            var chunkLength = end - start + 1;
+
+            httpContext.Response.StatusCode = 206;
+            httpContext.Response.Headers.ContentRange = $"bytes {start}-{end}/{fileLength}";
+            httpContext.Response.Headers.AcceptRanges = "bytes";
+            httpContext.Response.ContentType = entry.MimeType;
+            httpContext.Response.ContentLength = chunkLength;
+
+            await using var fs = new FileStream(absolutePath, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, true);
+            fs.Seek(start, SeekOrigin.Begin);
+
+            var buffer = new byte[64 * 1024];
+            var remaining = chunkLength;
+            while (remaining > 0)
+            {
+                var toRead = (int)Math.Min(buffer.Length, remaining);
+                var read = await fs.ReadAsync(buffer.AsMemory(0, toRead), cancellationToken);
+                if (read == 0) break;
+                await httpContext.Response.Body.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                remaining -= read;
+            }
+
+            return Results.Empty;
+        }
+
+        httpContext.Response.Headers.AcceptRanges = "bytes";
+        var fullStream = new FileStream(absolutePath, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, true);
+        return Results.File(fullStream, entry.MimeType, enableRangeProcessing: true);
+    });
+
 api.MapPost("/files/upload", async (
         IFormFile file,
         string? relativeDirectory,
-        FlishDbContext dbContext,
         FilePathResolver pathResolver,
         IFileIndexer indexer,
         IOptions<StorageOptions> storageOptions,
@@ -221,11 +232,11 @@ api.MapPost("/files/upload", async (
 
 api.MapDelete("/files/{id:guid}", async (
         Guid id,
-        FlishDbContext dbContext,
+        FileIndexRepository repo,
         FilePathResolver pathResolver,
         CancellationToken cancellationToken) =>
     {
-        var entry = await dbContext.FileIndexEntries.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
+        var entry = await repo.GetActiveByIdAsync(id, cancellationToken);
         if (entry is null)
         {
             return Results.NotFound();
@@ -239,7 +250,7 @@ api.MapDelete("/files/{id:guid}", async (
 
         entry.IsDeleted = true;
         entry.IndexedAtUtc = DateTime.UtcNow;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await repo.SaveChangesAsync(cancellationToken);
         return Results.NoContent();
     })
     .RequireRateLimiting("writes");

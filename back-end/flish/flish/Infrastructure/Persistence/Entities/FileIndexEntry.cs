@@ -8,6 +8,7 @@ public class FileIndexEntry
     public string Extension { get; set; } = string.Empty;
     public long SizeBytes { get; set; }
     public string MimeType { get; set; } = "application/octet-stream";
+    public string Category { get; set; } = "other";
     public DateTime LastWriteUtc { get; set; }
     public DateTime CreatedUtc { get; set; }
     public bool IsDeleted { get; set; }

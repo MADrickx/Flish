@@ -48,7 +48,8 @@ label {
 }
 
 input[type='text'],
-input[type='file'] {
+input[type='file'],
+select {
   border: 1px solid var(--border);
   border-radius: 0.6rem;
   padding: 0.52rem 0.68rem;
@@ -187,7 +188,7 @@ tbody tr:hover td {
 
 @media (min-width: 760px) {
   .toolbar {
-    grid-template-columns: 1.5fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr;
     align-items: end;
   }
 }
@@ -264,14 +265,18 @@ tbody tr:hover td {
   }
 
   td:nth-child(3)::before {
-    content: 'Size';
+    content: 'Type';
   }
 
   td:nth-child(4)::before {
-    content: 'Updated';
+    content: 'Size';
   }
 
   td:nth-child(5)::before {
+    content: 'Updated';
+  }
+
+  td:nth-child(6)::before {
     content: 'Actions';
   }
 

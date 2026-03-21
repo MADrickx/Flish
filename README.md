@@ -1,18 +1,28 @@
 # Flish
 
-Flish is a VPS-hosted file management system:
+Flish is a multimedia VPS server -- index, browse, stream, and manage your video, audio, and photo files from anywhere through a modern Angular client.
 
-- ASP.NET Core backend indexes files from a configured master directory
-- PostgreSQL stores file metadata and auth users
-- Angular client manages files (list, upload, download, delete)
-- Docker Compose runs API + DB + Web on the VPS
+## Features
+
+- **Video streaming** with seeking support (HTTP Range requests)
+- **Audio playback** with queue and player bar
+- **Photo gallery** with fullscreen lightbox viewer
+- **File management**: upload, download, delete, search
+- **Auto-indexing**: background scanner catalogs your master directory
+- **Responsive UI**: sidebar on desktop, bottom nav on mobile
+
+## Architecture
+
+- **Backend**: ASP.NET Core (.NET 10), PostgreSQL, minimal APIs
+- **Frontend**: Angular 21, NgRx SignalStore, signals-first
+- **Infra**: Docker Compose (API + PostgreSQL + nginx)
 
 ## Repository Structure
 
-- `back-end/flish/flish/` - ASP.NET Core API
-- `front-client/` - Angular 21 client
-- `infra/` - Docker and deployment assets
-- `docs/` - architecture, API, operations
+- `back-end/flish/flish/` -- ASP.NET Core API
+- `front-client/` -- Angular 21 client
+- `infra/` -- Docker Compose and deployment
+- `docs/` -- architecture, API reference, operations, roadmap
 
 ## Local Development
 
@@ -32,22 +42,26 @@ npm install
 npm start
 ```
 
-## Configuration Overview
+## VPS Deployment
 
-Backend configuration lives in `back-end/flish/flish/appsettings*.json`.
+```bash
+cd infra
+cp .env.example .env   # edit with your values
+docker compose up -d
+```
 
-Important settings:
+See [docs/operations.md](docs/operations.md) for the full deployment runbook.
 
-- `Storage:MasterDirectory` - root directory Flish can manage
-- `Storage:MaxUploadBytes` - upload size limit
-- `Indexing:ScanIntervalSeconds` - periodic scanner interval
-- `BasicAuth:SeedUser` - first admin user for v1
-- `ConnectionStrings:DefaultConnection` - PostgreSQL connection
+## Configuration
 
-## CI/CD
+Backend configuration lives in `back-end/flish/flish/appsettings*.json`:
 
-GitHub Actions workflows are in `.github/workflows/`:
+- `Storage:MasterDirectory` -- root directory to index and serve
+- `Storage:MaxUploadBytes` -- upload size limit (default 500 MB)
+- `Indexing:ScanIntervalSeconds` -- periodic scan interval
+- `BasicAuth:SeedUser` -- initial admin credentials
+- `ConnectionStrings:DefaultConnection` -- PostgreSQL connection
 
-- `ci.yml` - build + test checks
-- `deploy.yml` - deploy to VPS over SSH and run Docker Compose
+## API
 
+See [docs/api.md](docs/api.md) for the full endpoint reference, including the streaming endpoint with Range request support.

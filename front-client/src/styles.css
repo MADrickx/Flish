@@ -13,6 +13,8 @@
   --danger-strong: #ef4444;
   --focus: #93c5fd;
   --shadow: 0 20px 55px rgba(3, 10, 28, 0.45);
+  --radius: 0.75rem;
+  --radius-sm: 0.55rem;
 }
 
 *,
@@ -39,9 +41,16 @@ body {
     -apple-system,
     sans-serif;
   line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
 }

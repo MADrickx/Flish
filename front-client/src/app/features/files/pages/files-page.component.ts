@@ -1,10 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
-import { AuthStateService } from '../../../core/auth/auth-state.service';
-import { FileItem } from '../models/file.models';
+import { formatBytes, MediaCategory } from '../../../core/models/media.models';
 import { FilesApiService } from '../services/files-api.service';
+import { FilesStore } from '../store/files.store';
+
+const CATEGORIES: { value: MediaCategory | ''; label: string }[] = [
+  { value: '', label: 'All' },
+  { value: 'video', label: 'Video' },
+  { value: 'audio', label: 'Audio' },
+  { value: 'photo', label: 'Photo' },
+  { value: 'document', label: 'Document' },
+  { value: 'other', label: 'Other' },
+];
 
 @Component({
   selector: 'app-files-page',
@@ -15,12 +23,8 @@ import { FilesApiService } from '../services/files-api.service';
     <section class="container">
       <header>
         <div>
-          <h1>Flish Files</h1>
+          <h1>All Files</h1>
           <p class="subtitle">Indexed files from your VPS master directory</p>
-        </div>
-        <div class="actions">
-          <span class="user">{{ auth.username() }}</span>
-          <button class="btn ghost" type="button" (click)="logout()">Logout</button>
         </div>
       </header>
 
@@ -30,10 +34,18 @@ import { FilesApiService } from '../services/files-api.service';
           <input
             id="search"
             type="text"
-            [ngModel]="query()"
+            [ngModel]="store.query()"
             (ngModelChange)="onQueryChange($event)"
             placeholder="Filter by path"
           />
+        </div>
+        <div class="field">
+          <label for="category">Category</label>
+          <select id="category" [ngModel]="store.category()" (ngModelChange)="onCategoryChange($event)">
+            @for (cat of categories; track cat.value) {
+              <option [value]="cat.value">{{ cat.label }}</option>
+            }
+          </select>
         </div>
         <div class="field">
           <label for="upload">Upload file</label>
@@ -41,8 +53,10 @@ import { FilesApiService } from '../services/files-api.service';
         </div>
       </div>
 
-      @if (loading()) {
+      @if (store.loading()) {
         <p class="state">Loading files...</p>
+      } @else if (store.error()) {
+        <p class="state error">{{ store.error() }}</p>
       } @else {
         <div class="table-wrap">
           <table>
@@ -50,32 +64,32 @@ import { FilesApiService } from '../services/files-api.service';
               <tr>
                 <th>Name</th>
                 <th>Path</th>
+                <th>Type</th>
                 <th>Size</th>
                 <th>Updated</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              @for (item of files(); track item.id) {
+              @for (item of store.items(); track item.id) {
                 <tr>
                   <td class="file-name">{{ item.fileName }}</td>
                   <td class="path">{{ item.relativePath }}</td>
-                  <td>{{ formatBytes(item.sizeBytes) }}</td>
+                  <td>{{ item.category }}</td>
+                  <td>{{ toBytes(item.sizeBytes) }}</td>
                   <td>{{ item.lastWriteUtc | date: 'medium' }}</td>
-                  <td class="actions">
-                    <a class="btn ghost icon-btn" [href]="downloadHref(item.id)" target="_blank" rel="noopener">
-                      <span aria-hidden="true">↓</span>
-                      Download
+                  <td class="row-actions">
+                    <a class="btn ghost icon-btn" [href]="api.downloadUrl(item.id)" target="_blank" rel="noopener">
+                      <span aria-hidden="true">↓</span> Download
                     </a>
-                    <button class="btn danger icon-btn" type="button" (click)="delete(item.id)">
-                      <span aria-hidden="true">×</span>
-                      Delete
+                    <button class="btn danger icon-btn" type="button" (click)="onDelete(item.id)">
+                      <span aria-hidden="true">×</span> Delete
                     </button>
                   </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="5" class="state">No files found.</td>
+                  <td colspan="6" class="state">No files found.</td>
                 </tr>
               }
             </tbody>
@@ -84,112 +98,58 @@ import { FilesApiService } from '../services/files-api.service';
       }
 
       <footer class="pager">
-        <button class="btn ghost" type="button" (click)="prevPage()" [disabled]="page() <= 1">Prev</button>
-        <span>Page {{ page() }} / {{ totalPages() }}</span>
-        <button class="btn ghost" type="button" (click)="nextPage()" [disabled]="page() >= totalPages()">
-          Next
-        </button>
+        <button class="btn ghost" type="button" (click)="prevPage()" [disabled]="store.page() <= 1">Prev</button>
+        <span>Page {{ store.page() }} / {{ store.totalPages() }}</span>
+        <button class="btn ghost" type="button" (click)="nextPage()" [disabled]="store.page() >= store.totalPages()">Next</button>
       </footer>
     </section>
-  `
+  `,
 })
 export class FilesPageComponent {
-  protected readonly auth = inject(AuthStateService);
-  private readonly api = inject(FilesApiService);
-  private readonly router = inject(Router);
-
-  protected readonly files = signal<FileItem[]>([]);
-  protected readonly loading = signal(false);
-  protected readonly page = signal(1);
-  protected readonly pageSize = signal(25);
-  protected readonly total = signal(0);
-  protected readonly query = signal('');
-  protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize())));
+  protected readonly store = inject(FilesStore);
+  protected readonly api = inject(FilesApiService);
+  protected readonly toBytes = formatBytes;
+  protected readonly categories = CATEGORIES;
 
   constructor() {
-    this.load();
+    this.store.load();
   }
 
   protected onQueryChange(value: string): void {
-    this.query.set(value);
-    this.page.set(1);
-    this.load();
+    this.store.setQuery(value);
+    this.store.load();
+  }
+
+  protected onCategoryChange(value: MediaCategory | ''): void {
+    this.store.setCategory(value);
+    this.store.load();
   }
 
   protected prevPage(): void {
-    if (this.page() <= 1) {
-      return;
-    }
-    this.page.update((v) => v - 1);
-    this.load();
+    if (this.store.page() <= 1) return;
+    this.store.setPage(this.store.page() - 1);
+    this.store.load();
   }
 
   protected nextPage(): void {
-    if (this.page() >= this.totalPages()) {
-      return;
-    }
-    this.page.update((v) => v + 1);
-    this.load();
+    if (this.store.page() >= this.store.totalPages()) return;
+    this.store.setPage(this.store.page() + 1);
+    this.store.load();
   }
 
-  protected delete(id: string): void {
-    this.api.delete(id).subscribe({
-      next: () => this.load()
-    });
-  }
-
-  protected downloadHref(id: string): string {
-    return `/api/files/${id}/download`;
-  }
-
-  protected formatBytes(size: number): string {
-    if (size < 1024) {
-      return `${size} B`;
-    }
-
-    const units = ['KB', 'MB', 'GB', 'TB'];
-    let value = size / 1024;
-    let unitIndex = 0;
-    while (value >= 1024 && unitIndex < units.length - 1) {
-      value /= 1024;
-      unitIndex++;
-    }
-
-    return `${value.toFixed(value >= 100 ? 0 : 1)} ${units[unitIndex]}`;
+  protected onDelete(id: string): void {
+    this.store.deleteItem(id);
   }
 
   protected onFilePicked(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    if (file === undefined) {
-      return;
-    }
-
+    if (!file) return;
     this.api.upload(file).subscribe({
       next: () => {
         input.value = '';
-        this.load();
-      }
-    });
-  }
-
-  protected logout(): void {
-    this.auth.clear();
-    void this.router.navigateByUrl('/login');
-  }
-
-  private load(): void {
-    this.loading.set(true);
-    this.api.list(this.page(), this.pageSize(), this.query()).subscribe({
-      next: (response) => {
-        this.files.set(response.items);
-        this.total.set(response.total);
-        this.loading.set(false);
+        this.store.load();
       },
-      error: () => {
-        this.loading.set(false);
-      }
     });
   }
 }
-
