@@ -6,12 +6,12 @@ using Microsoft.EntityFrameworkCore;
 namespace flish.Features.Indexing;
 
 public sealed class FileIndexer(
-    FlishDbContext dbContext,
+    IDbContextFactory<FlishDbContext> dbContextFactory,
     FilePathResolver pathResolver,
     ILogger<FileIndexer> logger
 ) : IFileIndexer
 {
-    private readonly FlishDbContext _dbContext = dbContext;
+    private readonly IDbContextFactory<FlishDbContext> _dbContextFactory = dbContextFactory;
     private readonly FilePathResolver _pathResolver = pathResolver;
     private readonly ILogger<FileIndexer> _logger = logger;
     private readonly SemaphoreSlim _runLock = new(1, 1);
@@ -33,8 +33,9 @@ public sealed class FileIndexer(
             var files = Directory.EnumerateFiles(_pathResolver.MasterDirectory, "*", SearchOption.AllDirectories).ToList();
             _status.LastSeenFiles = files.Count;
 
+            await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
             var now = DateTime.UtcNow;
-            var existing = await _dbContext.FileIndexEntries
+            var existing = await dbContext.FileIndexEntries
                 .AsTracking()
                 .ToDictionaryAsync(x => x.RelativePath, cancellationToken);
 
@@ -68,7 +69,7 @@ public sealed class FileIndexer(
                 }
                 else
                 {
-                    _dbContext.FileIndexEntries.Add(new FileIndexEntry
+                    dbContext.FileIndexEntries.Add(new FileIndexEntry
                     {
                         Id = Guid.NewGuid(),
                         RelativePath = relativePath,
@@ -98,7 +99,7 @@ public sealed class FileIndexer(
                 softDeleted++;
             }
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
             _status.LastCompletedAtUtc = now;
             _status.LastUpsertedFiles = upserted;
             _status.LastSoftDeletedFiles = softDeleted;

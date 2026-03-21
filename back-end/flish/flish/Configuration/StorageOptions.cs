@@ -6,5 +6,6 @@ public sealed class StorageOptions
 
     public string MasterDirectory { get; set; } = "./storage";
     public long MaxUploadBytes { get; set; } = 524_288_000;
+    public string[] AllowedExtensions { get; set; } = [];
 }
 

@@ -18,7 +18,7 @@
 ## Backups
 
 - PostgreSQL dump:
-  - `docker exec flish-db pg_dump -U $POSTGRES_USER $POSTGRES_DB > backup.sql`
+  - `sh infra/scripts/backup-db.sh`
 - Keep daily backups and test restore monthly.
 
 ## Recovery

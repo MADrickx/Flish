@@ -12,6 +12,7 @@ import { AuthStateService } from '../../../core/auth/auth-state.service';
   template: `
     <section class="container">
       <h1>Flish Login</h1>
+      <p>Access your VPS file index securely.</p>
       <form (ngSubmit)="login()">
         <label>
           Username

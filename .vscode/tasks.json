@@ -3,8 +3,12 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "type": "npm",
-      "script": "start",
+      "label": "front-client: start",
+      "type": "shell",
+      "command": "npm run start",
+      "options": {
+        "cwd": "${workspaceFolder}/front-client"
+      },
       "isBackground": true,
       "problemMatcher": {
         "owner": "typescript",
@@ -21,8 +25,12 @@
       }
     },
     {
-      "type": "npm",
-      "script": "test",
+      "label": "front-client: test",
+      "type": "shell",
+      "command": "npm run test",
+      "options": {
+        "cwd": "${workspaceFolder}/front-client"
+      },
       "isBackground": true,
       "problemMatcher": {
         "owner": "typescript",

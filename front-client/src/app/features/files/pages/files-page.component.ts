@@ -14,61 +14,81 @@ import { FilesApiService } from '../services/files-api.service';
   template: `
     <section class="container">
       <header>
-        <h1>Flish Files</h1>
+        <div>
+          <h1>Flish Files</h1>
+          <p class="subtitle">Indexed files from your VPS master directory</p>
+        </div>
         <div class="actions">
           <span class="user">{{ auth.username() }}</span>
-          <button type="button" (click)="logout()">Logout</button>
+          <button class="btn ghost" type="button" (click)="logout()">Logout</button>
         </div>
       </header>
 
       <div class="toolbar">
-        <input
-          type="text"
-          [ngModel]="query()"
-          (ngModelChange)="onQueryChange($event)"
-          placeholder="Filter by path"
-        />
-        <input type="file" (change)="onFilePicked($event)" />
+        <div class="field">
+          <label for="search">Search path</label>
+          <input
+            id="search"
+            type="text"
+            [ngModel]="query()"
+            (ngModelChange)="onQueryChange($event)"
+            placeholder="Filter by path"
+          />
+        </div>
+        <div class="field">
+          <label for="upload">Upload file</label>
+          <input id="upload" type="file" (change)="onFilePicked($event)" />
+        </div>
       </div>
 
       @if (loading()) {
-        <p>Loading files...</p>
+        <p class="state">Loading files...</p>
       } @else {
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Path</th>
-              <th>Size</th>
-              <th>Updated</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (item of files(); track item.id) {
+        <div class="table-wrap">
+          <table>
+            <thead>
               <tr>
-                <td>{{ item.fileName }}</td>
-                <td>{{ item.relativePath }}</td>
-                <td>{{ item.sizeBytes }}</td>
-                <td>{{ item.lastWriteUtc | date: 'medium' }}</td>
-                <td class="actions">
-                  <a [href]="downloadHref(item.id)" target="_blank" rel="noopener">Download</a>
-                  <button type="button" (click)="delete(item.id)">Delete</button>
-                </td>
+                <th>Name</th>
+                <th>Path</th>
+                <th>Size</th>
+                <th>Updated</th>
+                <th>Actions</th>
               </tr>
-            } @empty {
-              <tr>
-                <td colspan="5">No files found.</td>
-              </tr>
-            }
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              @for (item of files(); track item.id) {
+                <tr>
+                  <td class="file-name">{{ item.fileName }}</td>
+                  <td class="path">{{ item.relativePath }}</td>
+                  <td>{{ formatBytes(item.sizeBytes) }}</td>
+                  <td>{{ item.lastWriteUtc | date: 'medium' }}</td>
+                  <td class="actions">
+                    <a class="btn ghost icon-btn" [href]="downloadHref(item.id)" target="_blank" rel="noopener">
+                      <span aria-hidden="true">↓</span>
+                      Download
+                    </a>
+                    <button class="btn danger icon-btn" type="button" (click)="delete(item.id)">
+                      <span aria-hidden="true">×</span>
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" class="state">No files found.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       }
 
       <footer class="pager">
-        <button type="button" (click)="prevPage()" [disabled]="page() <= 1">Prev</button>
+        <button class="btn ghost" type="button" (click)="prevPage()" [disabled]="page() <= 1">Prev</button>
         <span>Page {{ page() }} / {{ totalPages() }}</span>
-        <button type="button" (click)="nextPage()" [disabled]="page() >= totalPages()">Next</button>
+        <button class="btn ghost" type="button" (click)="nextPage()" [disabled]="page() >= totalPages()">
+          Next
+        </button>
       </footer>
     </section>
   `
@@ -120,6 +140,22 @@ export class FilesPageComponent {
 
   protected downloadHref(id: string): string {
     return `/api/files/${id}/download`;
+  }
+
+  protected formatBytes(size: number): string {
+    if (size < 1024) {
+      return `${size} B`;
+    }
+
+    const units = ['KB', 'MB', 'GB', 'TB'];
+    let value = size / 1024;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex++;
+    }
+
+    return `${value.toFixed(value >= 100 ? 0 : 1)} ${units[unitIndex]}`;
   }
 
   protected onFilePicked(event: Event): void {

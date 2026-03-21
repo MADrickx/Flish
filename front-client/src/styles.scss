@@ -1,1 +1,47 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  color-scheme: dark;
+  --bg: #0b1120;
+  --bg-elev: #111b32;
+  --surface: #0f172a;
+  --surface-elev: #172445;
+  --border: #26385f;
+  --text: #e5ecff;
+  --text-soft: #9eb1d8;
+  --primary: #4f8cff;
+  --primary-strong: #3b74e0;
+  --danger: #f87171;
+  --danger-strong: #ef4444;
+  --focus: #93c5fd;
+  --shadow: 0 20px 55px rgba(3, 10, 28, 0.45);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background: radial-gradient(circle at 20% -10%, #1a2b57 0%, var(--bg) 45%);
+  color: var(--text);
+  font-family:
+    Inter,
+    'Segoe UI',
+    Roboto,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  line-height: 1.35;
+}
+
+button,
+input {
+  font: inherit;
+}

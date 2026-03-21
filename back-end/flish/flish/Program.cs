@@ -22,6 +22,7 @@ builder.Services.Configure<BasicAuthOptions>(builder.Configuration.GetSection(Ba
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required.");
 builder.Services.AddDbContext<FlishDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddDbContextFactory<FlishDbContext>(options => options.UseNpgsql(connectionString));
 
 builder.Services.Configure<FormOptions>(options =>
 {
@@ -188,6 +189,19 @@ api.MapPost("/files/upload", async (
         if (file.Length > storageOptions.Value.MaxUploadBytes)
         {
             return Results.BadRequest("Uploaded file exceeds max upload size.");
+        }
+
+        var allowedExtensions = storageOptions.Value.AllowedExtensions;
+        if (allowedExtensions.Length > 0)
+        {
+            var uploadedExtension = Path.GetExtension(file.FileName).TrimStart('.').ToLowerInvariant();
+            var isAllowed = allowedExtensions
+                .Select(x => x.Trim().TrimStart('.').ToLowerInvariant())
+                .Contains(uploadedExtension, StringComparer.OrdinalIgnoreCase);
+            if (!isAllowed)
+            {
+                return Results.BadRequest("Uploaded file extension is not allowed.");
+            }
         }
 
         var safeDirectory = string.IsNullOrWhiteSpace(relativeDirectory) ? string.Empty : relativeDirectory.Trim();
