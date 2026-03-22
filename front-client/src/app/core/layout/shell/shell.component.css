@@ -108,9 +108,16 @@
   border-color: var(--danger);
 }
 
-.content {
-  overflow-y: auto;
+.main-area {
+  display: flex;
+  flex-direction: column;
   min-height: 100dvh;
+  position: relative;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
   transition: background-color 0.2s ease;
 }
 

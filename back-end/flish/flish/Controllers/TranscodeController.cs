@@ -33,4 +33,17 @@ public class TranscodeController(
         var job = transcodeService.GetJob(jobId);
         return job is null ? NotFound() : Ok(job);
     }
+
+    [HttpGet("transcode/jobs")]
+    public IActionResult GetAllJobs()
+    {
+        return Ok(transcodeService.GetAllJobs());
+    }
+
+    [HttpDelete("transcode/{jobId}")]
+    [EnableRateLimiting("writes")]
+    public IActionResult CancelJob(string jobId)
+    {
+        return transcodeService.CancelJob(jobId) ? NoContent() : NotFound();
+    }
 }

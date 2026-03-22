@@ -3,11 +3,12 @@ import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/rou
 import { HttpClient } from '@angular/common/http';
 import { AuthStateService } from '../../auth/auth-state.service';
 import { ThemeService } from '../../services/theme.service';
+import { HeaderComponent } from './header/header.component';
 
 @Component({
   selector: 'app-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, HeaderComponent],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.css',
 })

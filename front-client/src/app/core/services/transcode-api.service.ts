@@ -5,7 +5,8 @@ import { Observable } from 'rxjs';
 export type TranscodeJobStatus = {
   id: string;
   fileId: string;
-  status: 'queued' | 'running' | 'completed' | 'failed';
+  fileName: string;
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
   progressPercent: number;
   outputPath: string | null;
   error: string | null;
@@ -21,5 +22,13 @@ export class TranscodeApiService {
 
   getStatus(jobId: string): Observable<TranscodeJobStatus> {
     return this.http.get<TranscodeJobStatus>(`/api/transcode/${jobId}/status`);
+  }
+
+  listAll(): Observable<TranscodeJobStatus[]> {
+    return this.http.get<TranscodeJobStatus[]>('/api/transcode/jobs');
+  }
+
+  cancel(jobId: string): Observable<void> {
+    return this.http.delete<void>(`/api/transcode/${jobId}`);
   }
 }

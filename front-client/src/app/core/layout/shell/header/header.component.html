@@ -1,0 +1,55 @@
+<header class="app-header">
+  <div class="header-left">
+    <span class="header-title">Flish</span>
+  </div>
+
+  <div class="header-right">
+    @if (tracker.allJobs().length > 0) {
+      <button class="jobs-btn" type="button" (click)="togglePanel()">
+        @if (tracker.runningCount() > 0) {
+          <span class="badge">{{ tracker.runningCount() }}</span>
+        }
+        Jobs
+      </button>
+    }
+  </div>
+</header>
+
+@if (panelOpen()) {
+  <div class="jobs-panel">
+    <div class="panel-header">
+      <span class="panel-title">Transcode Jobs</span>
+      <button class="panel-close" type="button" (click)="togglePanel()">x</button>
+    </div>
+
+    @if (tracker.allJobs().length === 0) {
+      <p class="panel-empty">No transcode jobs.</p>
+    }
+
+    @for (job of tracker.allJobs(); track job.id) {
+      <div class="job-row">
+        <div class="job-info">
+          <span class="job-name">{{ job.fileName || job.id }}</span>
+          <span class="job-status" [attr.data-status]="job.status">
+            {{ statusLabel(job.status) }}
+          </span>
+        </div>
+
+        @if (job.status === 'running') {
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="job.progressPercent"></div>
+          </div>
+          <span class="progress-label">{{ job.progressPercent }}%</span>
+        }
+
+        @if (job.status === 'failed' && job.error) {
+          <span class="job-error">{{ job.error }}</span>
+        }
+
+        @if (job.status === 'queued' || job.status === 'running') {
+          <button class="btn-cancel" type="button" (click)="cancel(job)">Cancel</button>
+        }
+      </div>
+    }
+  </div>
+}

@@ -14,22 +14,56 @@ public sealed partial class TranscodeService(
 )
 {
     private readonly ConcurrentDictionary<string, TranscodeJobStatus> _jobs = new();
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellations = new();
+    private readonly ConcurrentDictionary<string, Process> _processes = new();
 
     public TranscodeJobStatus? GetJob(string jobId) =>
         _jobs.TryGetValue(jobId, out var job) ? job : null;
 
+    public IReadOnlyList<TranscodeJobStatus> GetAllJobs() =>
+        _jobs.Values.ToList();
+
     public string StartTranscode(FileIndexEntry entry)
     {
         var jobId = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
-        var job = new TranscodeJobStatus { Id = jobId, FileId = entry.Id };
-        _jobs[jobId] = job;
+        var job = new TranscodeJobStatus { Id = jobId, FileId = entry.Id, FileName = entry.FileName };
+        var cts = new CancellationTokenSource();
 
-        _ = Task.Run(() => RunFfmpegAsync(entry, job));
+        _jobs[jobId] = job;
+        _cancellations[jobId] = cts;
+
+        _ = Task.Run(() => RunFfmpegAsync(entry, job, cts.Token));
 
         return jobId;
     }
 
-    private async Task RunFfmpegAsync(FileIndexEntry entry, TranscodeJobStatus job)
+    public bool CancelJob(string jobId)
+    {
+        if (!_jobs.TryGetValue(jobId, out var job))
+            return false;
+
+        if (job.Status is not ("queued" or "running"))
+            return false;
+
+        job.Status = "cancelled";
+
+        if (_cancellations.TryRemove(jobId, out var cts))
+        {
+            cts.Cancel();
+            cts.Dispose();
+        }
+
+        if (_processes.TryRemove(jobId, out var process))
+        {
+            try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
+            catch { /* process may have already exited */ }
+        }
+
+        logger.LogInformation("Transcode job {JobId} cancelled", jobId);
+        return true;
+    }
+
+    private async Task RunFfmpegAsync(FileIndexEntry entry, TranscodeJobStatus job, CancellationToken ct)
     {
         try
         {
@@ -45,14 +79,22 @@ public sealed partial class TranscodeService(
 
             job.Status = "running";
 
-            var psi = new ProcessStartInfo
+            var psi = new ProcessStartInfo("ffmpeg")
             {
-                FileName = "ffmpeg",
-                Arguments = $"-i \"{inputPath}\" -c:v libx264 -c:a aac -movflags +faststart -y \"{outputPath}\"",
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
+            psi.ArgumentList.Add("-i");
+            psi.ArgumentList.Add(inputPath);
+            psi.ArgumentList.Add("-c:v");
+            psi.ArgumentList.Add("libx264");
+            psi.ArgumentList.Add("-c:a");
+            psi.ArgumentList.Add("aac");
+            psi.ArgumentList.Add("-movflags");
+            psi.ArgumentList.Add("+faststart");
+            psi.ArgumentList.Add("-y");
+            psi.ArgumentList.Add(outputPath);
 
             using var process = Process.Start(psi);
             if (process is null)
@@ -62,10 +104,14 @@ public sealed partial class TranscodeService(
                 return;
             }
 
+            _processes[job.Id] = process;
+
             var totalDuration = TimeSpan.Zero;
 
-            while (await process.StandardError.ReadLineAsync() is { } line)
+            while (await process.StandardError.ReadLineAsync(ct) is { } line)
             {
+                if (ct.IsCancellationRequested) break;
+
                 var durationMatch = DurationPattern().Match(line);
                 if (durationMatch.Success && totalDuration == TimeSpan.Zero)
                 {
@@ -80,7 +126,17 @@ public sealed partial class TranscodeService(
                 }
             }
 
-            await process.WaitForExitAsync();
+            await process.WaitForExitAsync(ct);
+
+            _processes.TryRemove(job.Id, out _);
+
+            if (ct.IsCancellationRequested)
+            {
+                job.Status = "cancelled";
+                if (File.Exists(outputPath) && !string.Equals(inputPath, outputPath, StringComparison.OrdinalIgnoreCase))
+                    File.Delete(outputPath);
+                return;
+            }
 
             if (process.ExitCode == 0 && File.Exists(outputPath))
             {
@@ -105,11 +161,21 @@ public sealed partial class TranscodeService(
                 logger.LogError("Transcode failed for {Input} with exit code {Code}", entry.RelativePath, process.ExitCode);
             }
         }
+        catch (OperationCanceledException)
+        {
+            job.Status = "cancelled";
+            logger.LogInformation("Transcode job {JobId} was cancelled", job.Id);
+        }
         catch (Exception ex)
         {
             job.Status = "failed";
             job.Error = ex.Message;
             logger.LogError(ex, "Transcode failed for file {Id}", job.FileId);
+        }
+        finally
+        {
+            _cancellations.TryRemove(job.Id, out _);
+            _processes.TryRemove(job.Id, out _);
         }
     }
 
