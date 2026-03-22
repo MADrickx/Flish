@@ -70,6 +70,11 @@ public class FileIndexRepository(FlishDbContext dbContext) : Repository<FileInde
         return await DbSet.AsNoTracking().FirstOrDefaultAsync(x => x.ShortCode == code && !x.IsDeleted, ct);
     }
 
+    public async Task<FileIndexEntry?> GetByRelativePathAsync(string relativePath, CancellationToken ct)
+    {
+        return await DbSet.FirstOrDefaultAsync(x => x.RelativePath == relativePath && !x.IsDeleted, ct);
+    }
+
     public async Task<(List<GroupedFileDto> Items, int Total)> GetPagedGroupedAsync(
         int page, int pageSize, string? category, string? query, CancellationToken ct)
     {

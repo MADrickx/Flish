@@ -84,6 +84,12 @@ public sealed partial class TranscodeService(
 
             if (process.ExitCode == 0 && File.Exists(outputPath))
             {
+                if (File.Exists(inputPath) && !string.Equals(inputPath, outputPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    File.Delete(inputPath);
+                    logger.LogInformation("Deleted original file: {Input}", entry.RelativePath);
+                }
+
                 job.Status = "completed";
                 job.ProgressPercent = 100;
                 job.OutputPath = pathResolver.ToRelativePath(outputPath);
