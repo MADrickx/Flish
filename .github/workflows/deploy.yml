@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches:
-      - main
+      - deploy
 
 jobs:
   deploy:
@@ -28,9 +28,13 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            set -e
             cd ${{ secrets.VPS_DEPLOY_PATH }}/infra
             cp -n .env.example .env || true
             docker compose --env-file .env build --pull
             docker compose --env-file .env up -d --remove-orphans
-            curl -f http://localhost:${WEB_PORT:-8080}/health/ready
+            set -a
+            . ./.env
+            set +a
+            curl -f "http://127.0.0.1:${WEB_PORT:-1604}/health/ready"
 

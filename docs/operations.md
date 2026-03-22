@@ -7,7 +7,7 @@
    - `docker compose pull`
    - `docker compose up -d --remove-orphans`
 3. Verify:
-   - `curl -f http://localhost:8080/health/ready`
+   - `curl -f http://localhost:1604/health/ready` (or whatever `WEB_PORT` is in `infra/.env`)
 
 ## Logs
 
