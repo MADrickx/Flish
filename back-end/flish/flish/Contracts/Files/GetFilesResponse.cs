@@ -20,3 +20,18 @@ public sealed record PagedFilesResponse(
     int Total
 );
 
+public sealed record GroupedFileDto(
+    string BaseName,
+    string RelativeDirectory,
+    IReadOnlyList<FileItemDto> Variants
+);
+
+public sealed record PagedGroupedResponse(
+    IReadOnlyList<GroupedFileDto> Items,
+    int Page,
+    int PageSize,
+    int Total
+);
+
+public sealed record RenameFileRequest(string NewFileName);
+

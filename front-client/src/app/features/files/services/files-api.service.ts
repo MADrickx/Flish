@@ -16,4 +16,8 @@ export class FilesApiService extends BaseApiService<MediaItem> {
     data.append('file', file);
     return this.http.post<{ path: string }>(`${this.basePath}/upload`, data);
   }
+
+  rename(id: string, newFileName: string): Observable<MediaItem> {
+    return this.http.patch<MediaItem>(`${this.basePath}/${id}/rename`, { newFileName });
+  }
 }

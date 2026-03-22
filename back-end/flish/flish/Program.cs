@@ -152,6 +152,22 @@ api.MapGet("/files", async (
     })
     .WithName("GetFiles");
 
+api.MapGet("/files/grouped", async (
+        int page,
+        int pageSize,
+        string? category,
+        string? query,
+        FileIndexRepository repo,
+        CancellationToken cancellationToken) =>
+    {
+        page = Math.Max(1, page == 0 ? 1 : page);
+        pageSize = Math.Clamp(pageSize == 0 ? 24 : pageSize, 1, 100);
+
+        var (items, total) = await repo.GetPagedGroupedAsync(page, pageSize, category, query, cancellationToken);
+        return Results.Ok(new PagedGroupedResponse(items, page, pageSize, total));
+    })
+    .WithName("GetFilesGrouped");
+
 api.MapGet("/files/{id:guid}", async (Guid id, FileIndexRepository repo, CancellationToken cancellationToken) =>
 {
     var item = await repo.GetDtoByIdAsync(id, cancellationToken);
@@ -265,6 +281,58 @@ api.MapDelete("/files/{id:guid}", async (
         entry.IndexedAtUtc = DateTime.UtcNow;
         await repo.SaveChangesAsync(cancellationToken);
         return Results.NoContent();
+    })
+    .RequireRateLimiting("writes");
+
+api.MapPatch("/files/{id:guid}/rename", async (
+        Guid id,
+        RenameFileRequest request,
+        FileIndexRepository repo,
+        FilePathResolver pathResolver,
+        CancellationToken cancellationToken) =>
+    {
+        if (string.IsNullOrWhiteSpace(request.NewFileName))
+            return Results.BadRequest(new { error = "New filename is required." });
+
+        var newName = request.NewFileName.Trim();
+        if (newName.Contains('/') || newName.Contains('\\') || newName.Contains(".."))
+            return Results.BadRequest(new { error = "Invalid filename." });
+
+        var entry = await repo.GetActiveByIdAsync(id, cancellationToken);
+        if (entry is null)
+            return Results.NotFound();
+
+        var oldAbsolutePath = pathResolver.ToAbsolutePath(entry.RelativePath);
+        if (!File.Exists(oldAbsolutePath))
+            return Results.NotFound();
+
+        var directory = Path.GetDirectoryName(oldAbsolutePath)!;
+        var newAbsolutePath = Path.Combine(directory, newName);
+
+        pathResolver.ToRelativePath(newAbsolutePath);
+
+        if (File.Exists(newAbsolutePath))
+            return Results.BadRequest(new { error = "A file with that name already exists." });
+
+        File.Move(oldAbsolutePath, newAbsolutePath);
+
+        var newRelativePath = pathResolver.ToRelativePath(newAbsolutePath);
+        var newExtension = Path.GetExtension(newName).TrimStart('.').ToLowerInvariant();
+
+        entry.FileName = newName;
+        entry.RelativePath = newRelativePath;
+        entry.Extension = newExtension;
+        entry.MimeType = MimeTypeMap.GetMimeType(newExtension);
+        entry.Category = MimeTypeMap.GetCategory(newExtension);
+        entry.IndexedAtUtc = DateTime.UtcNow;
+
+        await repo.SaveChangesAsync(cancellationToken);
+
+        return Results.Ok(new FileItemDto(
+            entry.Id, entry.RelativePath, entry.FileName, entry.Extension,
+            entry.SizeBytes, entry.MimeType, entry.Category, entry.ShortCode,
+            entry.LastWriteUtc, entry.IndexedAtUtc
+        ));
     })
     .RequireRateLimiting("writes");
 

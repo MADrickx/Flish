@@ -1,21 +1,56 @@
-<div class="thumb" (click)="selected.emit()">
+<div class="thumb" (click)="play()">
   <span>🎬</span>
   <div class="play-overlay">▶</div>
 </div>
 <div class="info">
-  <div class="name">{{ fileName() }}</div>
-  <div class="meta">
-    {{ size() }} &middot; {{ extension() }}
-    <app-stream-link [shortCode]="shortCode()" />
-  </div>
-  @if (canTranscode()) {
-    @if (transcoding()) {
-      <div class="transcode-progress">
-        <div class="progress-bar" [style.width.%]="transcodeProgress()"></div>
-        <span class="progress-label">{{ transcodeProgress() }}%</span>
-      </div>
-    } @else {
-      <button class="transcode-btn" type="button" (click)="startTranscode($event)">Convert to MP4</button>
+  <div class="name">{{ baseName() }}</div>
+
+  <div class="pills">
+    @for (variant of variants(); track variant.id; let i = $index) {
+      <button
+        type="button"
+        [class]="pillClass(variant.extension)"
+        [class.active]="selectedIndex() === i"
+        (click)="selectVariant(i); $event.stopPropagation()"
+      >
+        {{ variant.extension | uppercase }}
+      </button>
     }
-  }
+  </div>
+
+  <div class="meta">
+    {{ formatSize(selected().sizeBytes) }}
+    <app-stream-link [shortCode]="selected().shortCode" />
+  </div>
+
+  <div class="actions-row">
+    <div class="download-wrap">
+      <button class="action-btn" type="button" (click)="toggleDropdown($event)">
+        Download ▾
+      </button>
+      @if (showDropdown()) {
+        <div class="dropdown">
+          @for (variant of variants(); track variant.id) {
+            <a class="dropdown-item" [href]="downloadUrl(variant.id)" target="_blank" rel="noopener">
+              <span class="dropdown-ext">{{ variant.extension | uppercase }}</span>
+              <span class="dropdown-size">{{ formatSize(variant.sizeBytes) }}</span>
+            </a>
+          }
+        </div>
+      }
+    </div>
+
+    @if (canTranscode()) {
+      @if (transcoding()) {
+        <div class="transcode-progress">
+          <div class="progress-bar" [style.width.%]="transcodeProgress()"></div>
+          <span class="progress-label">{{ transcodeProgress() }}%</span>
+        </div>
+      } @else {
+        <button class="action-btn convert" type="button" (click)="startTranscode($event)">
+          To MP4
+        </button>
+      }
+    }
+  </div>
 </div>

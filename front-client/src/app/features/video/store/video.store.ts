@@ -2,12 +2,12 @@ import { computed, inject } from '@angular/core';
 import { signalStore, withState, withComputed, withMethods, patchState } from '@ngrx/signals';
 import { firstValueFrom } from 'rxjs';
 import { VideoApiService } from '../services/video-api.service';
-import { MediaItem } from '../../../core/models/media.models';
+import { GroupedMediaItem, MediaItem } from '../../../core/models/media.models';
 
 type PlaybackStatus = 'idle' | 'playing' | 'paused';
 
 type VideoState = {
-  items: MediaItem[];
+  groups: GroupedMediaItem[];
   nowPlaying: MediaItem | null;
   playbackStatus: PlaybackStatus;
   page: number;
@@ -19,7 +19,7 @@ type VideoState = {
 };
 
 const initialState: VideoState = {
-  items: [],
+  groups: [],
   nowPlaying: null,
   playbackStatus: 'idle',
   page: 1,
@@ -34,10 +34,10 @@ export const VideoStore = signalStore(
   { providedIn: 'root' },
   withState(initialState),
 
-  withComputed(({ items, total, pageSize, nowPlaying }) => ({
-    count: computed(() => items().length),
+  withComputed(({ groups, total, pageSize, nowPlaying }) => ({
+    count: computed(() => groups().length),
     totalPages: computed(() => Math.max(1, Math.ceil(total() / pageSize()))),
-    hasItems: computed(() => items().length > 0),
+    hasItems: computed(() => groups().length > 0),
     streamUrl: computed(() => {
       const item = nowPlaying();
       return item ? `/p/${item.shortCode}` : null;
@@ -48,8 +48,8 @@ export const VideoStore = signalStore(
     async load() {
       patchState(store, { loading: true, error: null });
       try {
-        const res = await firstValueFrom(api.listVideos(store.page(), store.pageSize(), store.query()));
-        patchState(store, { items: res.items, total: res.total, loading: false });
+        const res = await firstValueFrom(api.listGrouped(store.page(), store.pageSize(), store.query()));
+        patchState(store, { groups: res.items, total: res.total, loading: false });
       } catch {
         patchState(store, { loading: false, error: 'Failed to load videos' });
       }

@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { VideoStore } from './video.store';
+import { MediaItem } from '../../../core/models/media.models';
 
 describe('VideoStore', () => {
   let store: InstanceType<typeof VideoStore>;
@@ -18,29 +19,35 @@ describe('VideoStore', () => {
   afterEach(() => httpMock.verify());
 
   it('should start with empty state', () => {
-    expect(store.items()).toEqual([]);
+    expect(store.groups()).toEqual([]);
     expect(store.loading()).toBe(false);
     expect(store.nowPlaying()).toBeNull();
     expect(store.playbackStatus()).toBe('idle');
   });
 
-  it('should load videos and update state', async () => {
+  it('should load grouped videos', async () => {
     const loadPromise = store.load();
 
-    const req = httpMock.expectOne((r) => r.url === '/api/files' && r.params.get('category') === 'video');
+    const req = httpMock.expectOne((r) => r.url === '/api/files/grouped' && r.params.get('category') === 'video');
     req.flush({
       items: [
         {
-          id: '1',
-          relativePath: 'movies/test.mp4',
-          fileName: 'test.mp4',
-          extension: 'mp4',
-          sizeBytes: 1024,
-          mimeType: 'video/mp4',
-          category: 'video',
-          shortCode: 'ABC123',
-          lastWriteUtc: '2026-01-01T00:00:00Z',
-          indexedAtUtc: '2026-01-01T00:00:00Z',
+          baseName: 'test',
+          relativeDirectory: 'movies',
+          variants: [
+            {
+              id: '1',
+              relativePath: 'movies/test.mp4',
+              fileName: 'test.mp4',
+              extension: 'mp4',
+              sizeBytes: 1024,
+              mimeType: 'video/mp4',
+              category: 'video',
+              shortCode: 'ABC123',
+              lastWriteUtc: '2026-01-01T00:00:00Z',
+              indexedAtUtc: '2026-01-01T00:00:00Z',
+            },
+          ],
         },
       ],
       page: 1,
@@ -50,21 +57,21 @@ describe('VideoStore', () => {
 
     await loadPromise;
 
-    expect(store.items().length).toBe(1);
-    expect(store.items()[0].fileName).toBe('test.mp4');
-    expect(store.total()).toBe(1);
+    expect(store.groups().length).toBe(1);
+    expect(store.groups()[0].baseName).toBe('test');
+    expect(store.groups()[0].variants.length).toBe(1);
     expect(store.loading()).toBe(false);
   });
 
-  it('should compute streamUrl when playing', () => {
-    const item = {
+  it('should compute streamUrl from shortCode when playing', () => {
+    const item: MediaItem = {
       id: 'abc',
       relativePath: 'test.mp4',
       fileName: 'test.mp4',
       extension: 'mp4',
       sizeBytes: 100,
       mimeType: 'video/mp4',
-      category: 'video' as const,
+      category: 'video',
       shortCode: 'XYZ789',
       lastWriteUtc: '',
       indexedAtUtc: '',
@@ -77,14 +84,14 @@ describe('VideoStore', () => {
   });
 
   it('should clear playback on stop', () => {
-    const item = {
+    const item: MediaItem = {
       id: 'abc',
       relativePath: 'test.mp4',
       fileName: 'test.mp4',
       extension: 'mp4',
       sizeBytes: 100,
       mimeType: 'video/mp4',
-      category: 'video' as const,
+      category: 'video',
       shortCode: 'XYZ789',
       lastWriteUtc: '',
       indexedAtUtc: '',

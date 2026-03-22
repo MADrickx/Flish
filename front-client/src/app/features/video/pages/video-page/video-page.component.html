@@ -28,14 +28,10 @@
     <app-empty-state icon="🎬" message="No videos found." />
   } @else {
     <div class="grid">
-      @for (item of store.items(); track item.id) {
+      @for (group of store.groups(); track group.baseName) {
         <app-video-card
-          [fileId]="item.id"
-          [fileName]="item.fileName"
-          [extension]="item.extension"
-          [size]="toBytes(item.sizeBytes)"
-          [shortCode]="item.shortCode"
-          (selected)="store.play(item)"
+          [group]="group"
+          (played)="store.play($event)"
         />
       }
     </div>

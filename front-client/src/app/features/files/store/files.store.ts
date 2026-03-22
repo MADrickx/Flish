@@ -69,5 +69,12 @@ export const FilesStore = signalStore(
       await firstValueFrom(api.delete(id));
       patchState(store, (s) => ({ items: s.items.filter((i) => i.id !== id) }));
     },
+
+    async renameItem(id: string, newFileName: string) {
+      const updated = await firstValueFrom(api.rename(id, newFileName));
+      patchState(store, (s) => ({
+        items: s.items.map((i) => (i.id === id ? updated : i)),
+      }));
+    },
   })),
 );

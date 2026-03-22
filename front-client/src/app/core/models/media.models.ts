@@ -13,6 +13,12 @@ export type MediaItem = {
   indexedAtUtc: string;
 };
 
+export type GroupedMediaItem = {
+  baseName: string;
+  relativeDirectory: string;
+  variants: MediaItem[];
+};
+
 export type PagedResponse<T> = {
   items: T[];
   page: number;

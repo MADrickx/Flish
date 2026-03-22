@@ -70,6 +70,41 @@ public class FileIndexRepository(FlishDbContext dbContext) : Repository<FileInde
         return await DbSet.AsNoTracking().FirstOrDefaultAsync(x => x.ShortCode == code && !x.IsDeleted, ct);
     }
 
+    public async Task<(List<GroupedFileDto> Items, int Total)> GetPagedGroupedAsync(
+        int page, int pageSize, string? category, string? query, CancellationToken ct)
+    {
+        var q = DbSet.AsNoTracking().Where(x => !x.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(category))
+            q = q.Where(x => x.Category == category);
+
+        if (!string.IsNullOrWhiteSpace(query))
+            q = q.Where(x => x.FileName.Contains(query) || x.RelativePath.Contains(query));
+
+        var all = await q.OrderBy(x => x.RelativePath).ToListAsync(ct);
+
+        var groups = all
+            .GroupBy(x =>
+            {
+                var dir = Path.GetDirectoryName(x.RelativePath)?.Replace('\\', '/') ?? "";
+                var baseName = Path.GetFileNameWithoutExtension(x.FileName);
+                return $"{dir}/{baseName}";
+            })
+            .Select(g =>
+            {
+                var first = g.First();
+                var dir = Path.GetDirectoryName(first.RelativePath)?.Replace('\\', '/') ?? "";
+                var baseName = Path.GetFileNameWithoutExtension(first.FileName);
+                return new GroupedFileDto(baseName, dir, g.Select(ToDto).ToList());
+            })
+            .ToList();
+
+        var total = groups.Count;
+        var paged = groups.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+        return (paged, total);
+    }
+
     private static FileItemDto ToDto(FileIndexEntry x) =>
         new(x.Id, x.RelativePath, x.FileName, x.Extension,
             x.SizeBytes, x.MimeType, x.Category, x.ShortCode,

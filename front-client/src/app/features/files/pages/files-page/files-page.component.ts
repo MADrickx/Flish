@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { formatBytes, MediaCategory } from '../../../../core/models/media.models';
@@ -29,8 +29,31 @@ export class FilesPageComponent {
   protected readonly toBytes = formatBytes;
   protected readonly categories = CATEGORIES;
 
+  protected readonly renamingId = signal<string | null>(null);
+  protected readonly renameValue = signal('');
+
   constructor() {
     this.store.load();
+  }
+
+  protected startRename(id: string, currentName: string): void {
+    this.renamingId.set(id);
+    this.renameValue.set(currentName);
+  }
+
+  protected cancelRename(): void {
+    this.renamingId.set(null);
+    this.renameValue.set('');
+  }
+
+  protected confirmRename(id: string): void {
+    const newName = this.renameValue().trim();
+    if (!newName || this.renamingId() !== id) {
+      this.cancelRename();
+      return;
+    }
+    this.store.renameItem(id, newName);
+    this.renamingId.set(null);
   }
 
   protected onQueryChange(value: string): void {

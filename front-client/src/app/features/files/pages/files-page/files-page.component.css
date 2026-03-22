@@ -139,6 +139,42 @@ tbody tr:hover td {
 
 .file-name {
   font-weight: 600;
+  cursor: default;
+}
+
+.name-text {
+  cursor: text;
+}
+
+.rename-icon {
+  background: transparent;
+  border: none;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0 0.2rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+tr:hover .rename-icon {
+  opacity: 0.6;
+}
+
+.rename-icon:hover {
+  opacity: 1;
+  color: var(--primary);
+}
+
+.rename-input {
+  width: 100%;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  padding: 0.2rem 0.4rem;
+  font: inherit;
+  font-weight: 600;
 }
 
 .path {

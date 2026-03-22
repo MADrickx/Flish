@@ -52,7 +52,23 @@
         <tbody>
           @for (item of store.items(); track item.id) {
             <tr>
-              <td class="file-name">{{ item.fileName }}</td>
+              <td class="file-name" (dblclick)="startRename(item.id, item.fileName)">
+                @if (renamingId() === item.id) {
+                  <input
+                    class="rename-input"
+                    type="text"
+                    [value]="renameValue()"
+                    (input)="renameValue.set($any($event.target).value)"
+                    (keydown.enter)="confirmRename(item.id)"
+                    (keydown.escape)="cancelRename()"
+                    (blur)="confirmRename(item.id)"
+                    #renameInput
+                  />
+                } @else {
+                  <span class="name-text">{{ item.fileName }}</span>
+                  <button class="rename-icon" type="button" (click)="startRename(item.id, item.fileName); $event.stopPropagation()">&#9998;</button>
+                }
+              </td>
               <td class="path">{{ item.relativePath }}</td>
               <td>{{ item.category }}</td>
               <td>{{ toBytes(item.sizeBytes) }}</td>
