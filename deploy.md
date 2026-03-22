@@ -181,16 +181,91 @@ In GitHub: **Settings → Secrets and variables → Actions**, add:
 |--------|-------------|
 | `VPS_HOST` | VPS public **IP** or DNS name |
 | `VPS_USER` | SSH user (e.g. `debian`, `root`) |
-| `VPS_SSH_KEY` | **Private** SSH key (PEM), matching a public key in `~/.ssh/authorized_keys` on the server |
+| `VPS_SSH_KEY` | **Private** SSH key for deploy only — create per §9 and paste the full private key |
 | `VPS_DEPLOY_PATH` | Absolute path on the server where the repo files are uploaded (no trailing slash). Example: `/home/flish` |
 
-Use a **dedicated deploy key** (not your personal daily key) for `VPS_SSH_KEY`.
+Use a **dedicated deploy key** (not your personal daily key) for `VPS_SSH_KEY`. See §9 for a full walkthrough.
+
+---
+
+### 9. Create a deploy-only SSH key (step by step)
+
+Do this **on your own machine** (e.g. **your Mac** or PC) — **not** on the VPS. You generate the key **locally**, put the **public** half on the **VPS** (`authorized_keys`), and put the **private** half in **GitHub** (`VPS_SSH_KEY`). The VPS does not need a copy of the private key file.
+
+**1. Generate a new keypair (no passphrase)**
+
+Ed25519 is a good default:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/flish_deploy -N "" -C "github-actions-deploy-flish"
+```
+
+- `-f ~/.ssh/flish_deploy` — private key file: `~/.ssh/flish_deploy`, public key: `~/.ssh/flish_deploy.pub`.
+- `-N ""` — **empty passphrase** (required for unattended CI; do not use a passphrase here).
+- Change the path if you prefer another folder/name.
+
+**2. Install the public key on the VPS**
+
+Copy the **public** key to the server user that will run Docker (same user as **`VPS_USER`** in GitHub):
+
+```bash
+ssh-copy-id -i ~/.ssh/flish_deploy.pub YOUR_USER@YOUR_VPS_IP
+```
+
+If `ssh-copy-id` is not available, do it manually:
+
+```bash
+cat ~/.ssh/flish_deploy.pub
+```
+
+On the VPS, as `YOUR_USER`:
+
+```bash
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+echo 'PASTE_THE_ONE_LINE_PUBLIC_KEY_HERE' >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+```
+
+**3. Verify SSH with only this key**
+
+```bash
+ssh -i ~/.ssh/flish_deploy -o IdentitiesOnly=yes YOUR_USER@YOUR_VPS_IP
+```
+
+You should get a shell without a password prompt. If not, fix SSH before continuing.
+
+**4. Put the private key in GitHub**
+
+1. Open the repo on GitHub → **Settings** → **Secrets and variables** → **Actions**.
+2. **New repository secret** → name: **`VPS_SSH_KEY`**.
+3. Open the **private** key file on your machine and copy **everything**:
+
+```bash
+cat ~/.ssh/flish_deploy
+```
+
+4. Paste into the secret value **full multiline**, from `-----BEGIN` through `-----END ...-----`. Save.
+
+**Must be the private key** (`flish_deploy`), **not** `flish_deploy.pub`.
+
+**5. Do not commit the private key**
+
+Keep `~/.ssh/flish_deploy` only on your machine (or a password manager backup). Never add it to the repo.
+
+**Note:** The **private** key file does **not** exist on the VPS — only the **public** line is in `~/.ssh/authorized_keys` there. If you SSH into the server and `cat ~/.ssh/flish_deploy` fails, that is normal. Run `cat ~/.ssh/flish_deploy` **on your Mac** to fill `VPS_SSH_KEY`.
+
+**6. Set the other secrets**
+
+- **`VPS_HOST`** — VPS IP or hostname (same host you used in the `ssh` test).
+- **`VPS_USER`** — same `YOUR_USER` as `authorized_keys`.
+- **`VPS_DEPLOY_PATH`** — absolute path on the server where deploy uploads files (must contain `infra/` after deploy).
 
 ---
 
 ## Every deploy (single command)
 
-### 9. Push to `deploy`
+### 10. Push to `deploy`
 
 ```bash
 git push origin deploy
@@ -202,7 +277,7 @@ GitHub Actions will:
 2. SSH into the VPS, `cd` into `infra`, ensure `.env` exists (from `.env.example` if missing), then `docker compose build` and `up -d`.
 3. Run a **health check** against `http://127.0.0.1:$WEB_PORT/health/ready` (with `WEB_PORT` loaded from `.env`).
 
-### 10. Verify manually
+### 11. Verify manually
 
 On the VPS:
 
@@ -234,6 +309,8 @@ From your PC browser:
 | Deploy fails on health check | API not ready yet (retry), or `WEB_PORT` in `.env` doesn’t match the mapped port |
 | Out of disk | `df -h`, Docker prune if appropriate |
 | Uploads / indexing fail, permission denied on files | `MASTER_DIRECTORY` exists on the host, matches `.env`, and is writable by the API process; see §4 and `docker compose logs api` |
+| Actions: `ssh.ParsePrivateKey: ssh: no key found` | `VPS_SSH_KEY` is missing, truncated, or not a valid **private** key (wrong paste, public key in secret, passphrase-only key mishandled). Re-paste the full private key per §9. |
+| Actions: `unable to authenticate` / `attempted methods [none]` | Often follows invalid key; or wrong `VPS_USER`, or public key not in `authorized_keys` for that user. Test SSH from your PC (§9). |
 
 ---
 
