@@ -3,6 +3,7 @@ import { signalStore, withState, withComputed, withMethods, patchState } from '@
 import { firstValueFrom } from 'rxjs';
 import { AudioApiService } from '../services/audio-api.service';
 import { MediaItem } from '../../../core/models/media.models';
+import { AuthStateService } from '../../../core/auth/auth-state.service';
 
 type PlaybackStatus = 'idle' | 'playing' | 'paused';
 
@@ -36,15 +37,21 @@ export const AudioStore = signalStore(
   { providedIn: 'root' },
   withState(initialState),
 
-  withComputed(({ items, total, pageSize, nowPlaying, queue }) => ({
-    count: computed(() => items().length),
-    totalPages: computed(() => Math.max(1, Math.ceil(total() / pageSize()))),
-    streamUrl: computed(() => {
-      const item = nowPlaying();
-      return item ? `/p/${item.shortCode}` : null;
-    }),
-    queueLength: computed(() => queue().length),
-  })),
+  withComputed(({ items, total, pageSize, nowPlaying, queue }) => {
+    const authState = inject(AuthStateService);
+
+    return {
+      count: computed(() => items().length),
+      totalPages: computed(() => Math.max(1, Math.ceil(total() / pageSize()))),
+      streamUrl: computed(() => {
+        const item = nowPlaying();
+        if (!item) return null;
+        const token = authState.accessToken();
+        return `/api/files/${item.id}/stream?access_token=${encodeURIComponent(token)}`;
+      }),
+      queueLength: computed(() => queue().length),
+    };
+  }),
 
   withMethods((store, api = inject(AudioApiService)) => ({
     async load() {

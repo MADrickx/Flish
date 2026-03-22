@@ -5,9 +5,11 @@ namespace flish.Infrastructure.Storage;
 
 public sealed class FilePathResolver(IOptions<StorageOptions> storageOptions)
 {
-    private readonly string _masterDirectory = Path.GetFullPath(storageOptions.Value.MasterDirectory);
+    private readonly string _masterDirectory =
+        Path.GetFullPath(storageOptions.Value.MasterDirectory).TrimEnd(Path.DirectorySeparatorChar, '/') +
+        Path.DirectorySeparatorChar;
 
-    public string MasterDirectory => _masterDirectory;
+    public string MasterDirectory => _masterDirectory.TrimEnd(Path.DirectorySeparatorChar);
 
     public string ToAbsolutePath(string relativePath)
     {
@@ -33,4 +35,3 @@ public sealed class FilePathResolver(IOptions<StorageOptions> storageOptions)
         return relative.Replace('\\', '/');
     }
 }
-

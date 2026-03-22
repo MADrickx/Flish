@@ -7,6 +7,7 @@ public class FlishDbContext(DbContextOptions<FlishDbContext> options) : DbContex
 {
     public DbSet<FileIndexEntry> FileIndexEntries => Set<FileIndexEntry>();
     public DbSet<AppUser> Users => Set<AppUser>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,6 +36,14 @@ public class FlishDbContext(DbContextOptions<FlishDbContext> options) : DbContex
             entity.Property(x => x.PasswordSalt).HasMaxLength(256).IsRequired();
             entity.HasIndex(x => x.Username).IsUnique();
         });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.ToTable("refresh_tokens");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();
+            entity.HasIndex(x => x.TokenHash).IsUnique();
+            entity.HasIndex(x => x.UserId);
+        });
     }
 }
-

@@ -3,7 +3,9 @@
     <app-video-player
       [src]="store.streamUrl()!"
       [title]="playing.fileName"
+      [fileId]="playing.id"
       [shortCode]="playing.shortCode"
+      [isPublic]="playing.isPublic"
       (closed)="store.stop()"
     />
   }

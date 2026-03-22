@@ -3,9 +3,11 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { AudioStore } from './audio.store';
 import { MediaItem } from '../../../core/models/media.models';
+import { AuthStateService } from '../../../core/auth/auth-state.service';
 
 describe('AudioStore', () => {
   let store: InstanceType<typeof AudioStore>;
+  let authState: AuthStateService;
 
   const mockTrack: MediaItem = {
     id: 'track-1',
@@ -16,6 +18,7 @@ describe('AudioStore', () => {
     mimeType: 'audio/mpeg',
     category: 'audio',
     shortCode: 'AUD123',
+    isPublic: false,
     lastWriteUtc: '',
     indexedAtUtc: '',
   };
@@ -25,7 +28,11 @@ describe('AudioStore', () => {
       providers: [AudioStore, provideHttpClient(), provideHttpClientTesting()],
     });
     store = TestBed.inject(AudioStore);
+    authState = TestBed.inject(AuthStateService);
+    authState.setSession('admin', 'test-access-token', 'test-refresh-token');
   });
+
+  afterEach(() => authState.clear());
 
   it('should start idle with empty queue', () => {
     expect(store.playbackStatus()).toBe('idle');
@@ -34,9 +41,9 @@ describe('AudioStore', () => {
     expect(store.streamUrl()).toBeNull();
   });
 
-  it('should compute streamUrl when playing', () => {
+  it('should compute authenticated streamUrl when playing', () => {
     store.play(mockTrack);
-    expect(store.streamUrl()).toBe('/p/AUD123');
+    expect(store.streamUrl()).toBe('/api/files/track-1/stream?access_token=test-access-token');
     expect(store.playbackStatus()).toBe('playing');
   });
 

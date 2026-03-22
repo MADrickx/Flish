@@ -1,8 +1,10 @@
 @if (compact()) {
   <span class="code" [title]="secureUrl">{{ shortCode() }}</span>
-  <button class="copy-btn" type="button" (click)="copy('public')" [title]="publicUrl">
-    {{ copied() === 'public' ? 'Copied' : 'Copy' }}
-  </button>
+  @if (isPublic()) {
+    <button class="copy-btn" type="button" (click)="copy('public')" [title]="publicUrl">
+      {{ copied() === 'public' ? 'Copied' : 'Copy' }}
+    </button>
+  }
 } @else {
   <div class="expanded">
     <div class="code-display">{{ shortCode() }}</div>
@@ -13,12 +15,28 @@
         {{ copied() === 'secure' ? 'Copied!' : 'Copy' }}
       </button>
     </div>
-    <div class="url-row">
-      <span class="label">Quick (no login)</span>
-      <code class="url">{{ publicUrl }}</code>
-      <button class="copy-btn" type="button" (click)="copy('public')">
-        {{ copied() === 'public' ? 'Copied!' : 'Copy' }}
+
+    @if (isPublic()) {
+      <div class="url-row">
+        <span class="label">Public (no login)</span>
+        <code class="url">{{ publicUrl }}</code>
+        <button class="copy-btn" type="button" (click)="copy('public')">
+          {{ copied() === 'public' ? 'Copied!' : 'Copy' }}
+        </button>
+      </div>
+    }
+
+    <div class="visibility-row">
+      <button
+        class="toggle-btn"
+        type="button"
+        (click)="toggleVisibility()"
+        [disabled]="toggling()"
+        [class.is-public]="isPublic()"
+      >
+        {{ isPublic() ? 'Make Private' : 'Make Public' }}
       </button>
+      <span class="visibility-label">{{ isPublic() ? 'Anyone with the link can access' : 'Only authenticated users' }}</span>
     </div>
   </div>
 }

@@ -108,5 +108,5 @@ public class FileIndexRepository(FlishDbContext dbContext) : Repository<FileInde
     private static FileItemDto ToDto(FileIndexEntry x) =>
         new(x.Id, x.RelativePath, x.FileName, x.Extension,
             x.SizeBytes, x.MimeType, x.Category, x.ShortCode,
-            x.LastWriteUtc, x.IndexedAtUtc);
+            x.IsPublic, x.LastWriteUtc, x.IndexedAtUtc);
 }

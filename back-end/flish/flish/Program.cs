@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text;
 using flish.Configuration;
 using flish.Contracts.Auth;
 using flish.Contracts.Files;
@@ -7,18 +8,21 @@ using flish.Features.Auth;
 using flish.Features.Indexing;
 using flish.Features.Transcoding;
 using flish.Infrastructure.Persistence;
+using flish.Infrastructure.Persistence.Entities;
 using flish.Infrastructure.Storage;
-using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection(StorageOptions.SectionName));
 builder.Services.Configure<IndexingOptions>(builder.Configuration.GetSection(IndexingOptions.SectionName));
 builder.Services.Configure<BasicAuthOptions>(builder.Configuration.GetSection(BasicAuthOptions.SectionName));
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required.");
@@ -33,8 +37,45 @@ builder.Services.Configure<FormOptions>(options =>
 
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
-builder.Services.AddAuthentication("Basic")
-    .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("Basic", _ => { });
+
+var jwtSection = builder.Configuration.GetSection(JwtOptions.SectionName);
+var jwtSecretKey = jwtSection.GetValue<string>("SecretKey")
+    ?? throw new InvalidOperationException("Jwt:SecretKey is required.");
+var jwtIssuer = jwtSection.GetValue<string>("Issuer") ?? "flish";
+var jwtAudience = jwtSection.GetValue<string>("Audience") ?? "flish-client";
+
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
+            ClockSkew = TimeSpan.FromMinutes(1),
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
+    });
 builder.Services.AddAuthorization();
 builder.Services.AddRateLimiter(options =>
 {
@@ -44,10 +85,23 @@ builder.Services.AddRateLimiter(options =>
         limiter.Window = TimeSpan.FromMinutes(1);
         limiter.QueueLimit = 0;
     });
+    options.AddFixedWindowLimiter("auth", limiter =>
+    {
+        limiter.PermitLimit = 10;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueLimit = 0;
+    });
+    options.AddFixedWindowLimiter("public-stream", limiter =>
+    {
+        limiter.PermitLimit = 60;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueLimit = 0;
+    });
 });
 
 builder.Services.AddSingleton<FilePathResolver>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
+builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<AuthUserSeeder>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<FileIndexRepository>();
@@ -93,11 +147,128 @@ app.MapHealthChecks("/health/ready");
 
 var api = app.MapGroup("/api").RequireAuthorization();
 
-api.MapPost("/auth/login", (ClaimsPrincipal user) =>
-{
-    var username = user.Identity?.Name ?? string.Empty;
-    return Results.Ok(new AuthLoginResponse(username));
-});
+// ─── Auth ────────────────────────────────────────────────────────────────────
+
+api.MapPost("/auth/login", async (
+        LoginRequest request,
+        FlishDbContext dbContext,
+        IPasswordHasher passwordHasher,
+        IJwtTokenService jwtTokenService,
+        IOptions<JwtOptions> jwtOptions,
+        CancellationToken cancellationToken) =>
+    {
+        if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+            return Results.BadRequest(new { error = "Username and password are required.", status = 400 });
+
+        var user = await dbContext.Users
+            .FirstOrDefaultAsync(x => x.Username == request.Username.Trim(), cancellationToken);
+
+        if (user is null || !passwordHasher.Verify(request.Password, user.PasswordHash, user.PasswordSalt))
+            return Results.Unauthorized();
+
+        var accessToken = jwtTokenService.GenerateAccessToken(user.Id, user.Username);
+        var rawRefreshToken = jwtTokenService.GenerateRefreshToken();
+        var refreshTokenHash = jwtTokenService.HashToken(rawRefreshToken);
+
+        dbContext.RefreshTokens.Add(new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TokenHash = refreshTokenHash,
+            ExpiresUtc = DateTime.UtcNow.AddDays(jwtOptions.Value.RefreshTokenExpirationDays),
+            CreatedUtc = DateTime.UtcNow,
+        });
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var expiresInSeconds = jwtOptions.Value.ExpirationMinutes * 60;
+        return Results.Ok(new AuthLoginResponse(user.Username, accessToken, rawRefreshToken, expiresInSeconds));
+    })
+    .AllowAnonymous()
+    .RequireRateLimiting("auth");
+
+api.MapPost("/auth/refresh", async (
+        RefreshRequest request,
+        FlishDbContext dbContext,
+        IJwtTokenService jwtTokenService,
+        IOptions<JwtOptions> jwtOptions,
+        CancellationToken cancellationToken) =>
+    {
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            return Results.BadRequest(new { error = "Refresh token is required.", status = 400 });
+
+        var tokenHash = jwtTokenService.HashToken(request.RefreshToken);
+        var storedToken = await dbContext.RefreshTokens
+            .FirstOrDefaultAsync(x => x.TokenHash == tokenHash, cancellationToken);
+
+        if (storedToken is null)
+            return Results.Unauthorized();
+
+        if (storedToken.IsRevoked)
+        {
+            await dbContext.RefreshTokens
+                .Where(x => x.UserId == storedToken.UserId)
+                .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsRevoked, true), cancellationToken);
+            return Results.Unauthorized();
+        }
+
+        if (storedToken.ExpiresUtc <= DateTime.UtcNow)
+        {
+            storedToken.IsRevoked = true;
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return Results.Unauthorized();
+        }
+
+        var user = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == storedToken.UserId, cancellationToken);
+        if (user is null)
+            return Results.Unauthorized();
+
+        storedToken.IsRevoked = true;
+
+        var newRawRefreshToken = jwtTokenService.GenerateRefreshToken();
+        var newRefreshTokenHash = jwtTokenService.HashToken(newRawRefreshToken);
+        var newTokenId = Guid.NewGuid();
+
+        storedToken.ReplacedByTokenId = newTokenId;
+
+        dbContext.RefreshTokens.Add(new RefreshToken
+        {
+            Id = newTokenId,
+            UserId = user.Id,
+            TokenHash = newRefreshTokenHash,
+            ExpiresUtc = DateTime.UtcNow.AddDays(jwtOptions.Value.RefreshTokenExpirationDays),
+            CreatedUtc = DateTime.UtcNow,
+        });
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var accessToken = jwtTokenService.GenerateAccessToken(user.Id, user.Username);
+        var expiresInSeconds = jwtOptions.Value.ExpirationMinutes * 60;
+        return Results.Ok(new AuthLoginResponse(user.Username, accessToken, newRawRefreshToken, expiresInSeconds));
+    })
+    .AllowAnonymous()
+    .RequireRateLimiting("auth");
+
+api.MapPost("/auth/logout", async (
+        RefreshRequest request,
+        ClaimsPrincipal user,
+        FlishDbContext dbContext,
+        IJwtTokenService jwtTokenService,
+        CancellationToken cancellationToken) =>
+    {
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            return Results.BadRequest(new { error = "Refresh token is required.", status = 400 });
+
+        var tokenHash = jwtTokenService.HashToken(request.RefreshToken);
+        var storedToken = await dbContext.RefreshTokens
+            .FirstOrDefaultAsync(x => x.TokenHash == tokenHash, cancellationToken);
+
+        if (storedToken is not null)
+        {
+            storedToken.IsRevoked = true;
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return Results.Ok(new { message = "Logged out." });
+    });
 
 api.MapPost("/auth/change-password", async (
         ChangePasswordRequest request,
@@ -123,11 +294,18 @@ api.MapPost("/auth/change-password", async (
         var (hash, salt) = passwordHasher.HashPassword(request.NewPassword);
         appUser.PasswordHash = hash;
         appUser.PasswordSalt = salt;
+
+        await dbContext.RefreshTokens
+            .Where(x => x.UserId == appUser.Id && !x.IsRevoked)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsRevoked, true), cancellationToken);
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return Results.Ok(new { message = "Password changed." });
+        return Results.Ok(new { message = "Password changed. Please log in again." });
     })
     .RequireRateLimiting("writes");
+
+// ─── Files ───────────────────────────────────────────────────────────────────
 
 api.MapGet("/files", async (
         int page,
@@ -231,10 +409,12 @@ api.MapPost("/files/upload", async (
             return Results.BadRequest("Uploaded file exceeds max upload size.");
         }
 
+        var safeFileName = Path.GetFileName(file.FileName);
+        var uploadedExtension = Path.GetExtension(safeFileName).TrimStart('.').ToLowerInvariant();
+
         var allowedExtensions = storageOptions.Value.AllowedExtensions;
         if (allowedExtensions.Length > 0)
         {
-            var uploadedExtension = Path.GetExtension(file.FileName).TrimStart('.').ToLowerInvariant();
             var isAllowed = allowedExtensions
                 .Select(x => x.Trim().TrimStart('.').ToLowerInvariant())
                 .Contains(uploadedExtension, StringComparer.OrdinalIgnoreCase);
@@ -244,8 +424,14 @@ api.MapPost("/files/upload", async (
             }
         }
 
+        await using var contentStream = file.OpenReadStream();
+        if (!await FileSignatureValidator.MatchesExtensionAsync(contentStream, uploadedExtension, cancellationToken))
+        {
+            return Results.BadRequest("File content does not match the claimed file extension.");
+        }
+
         var safeDirectory = string.IsNullOrWhiteSpace(relativeDirectory) ? string.Empty : relativeDirectory.Trim();
-        var combinedRelative = Path.Combine(safeDirectory, Path.GetFileName(file.FileName)).Replace('\\', '/');
+        var combinedRelative = Path.Combine(safeDirectory, safeFileName).Replace('\\', '/');
         var absolutePath = pathResolver.ToAbsolutePath(combinedRelative);
         Directory.CreateDirectory(Path.GetDirectoryName(absolutePath)!);
 
@@ -331,10 +517,29 @@ api.MapPatch("/files/{id:guid}/rename", async (
         return Results.Ok(new FileItemDto(
             entry.Id, entry.RelativePath, entry.FileName, entry.Extension,
             entry.SizeBytes, entry.MimeType, entry.Category, entry.ShortCode,
-            entry.LastWriteUtc, entry.IndexedAtUtc
+            entry.IsPublic, entry.LastWriteUtc, entry.IndexedAtUtc
         ));
     })
     .RequireRateLimiting("writes");
+
+api.MapPatch("/files/{id:guid}/visibility", async (
+        Guid id,
+        VisibilityRequest request,
+        FileIndexRepository repo,
+        CancellationToken cancellationToken) =>
+    {
+        var entry = await repo.GetActiveByIdAsync(id, cancellationToken);
+        if (entry is null)
+            return Results.NotFound();
+
+        entry.IsPublic = request.IsPublic;
+        await repo.SaveChangesAsync(cancellationToken);
+
+        return Results.Ok(new { id = entry.Id, isPublic = entry.IsPublic });
+    })
+    .RequireRateLimiting("writes");
+
+// ─── Indexing ────────────────────────────────────────────────────────────────
 
 api.MapGet("/index/status", (IFileIndexer indexer) =>
 {
@@ -354,6 +559,8 @@ api.MapPost("/index/rebuild", async (IFileIndexer indexer, CancellationToken can
     await indexer.RunOnceAsync(cancellationToken);
     return Results.Accepted("/api/index/status");
 }).RequireRateLimiting("writes");
+
+// ─── Transcoding ─────────────────────────────────────────────────────────────
 
 api.MapPost("/files/{id:guid}/transcode", async (
         Guid id,
@@ -378,6 +585,8 @@ api.MapGet("/transcode/{jobId}/status", (string jobId, TranscodeService transcod
     return job is null ? Results.NotFound() : Results.Ok(job);
 });
 
+// ─── Short-link streaming ────────────────────────────────────────────────────
+
 app.MapGet("/s/{code}", async (
         string code,
         FileIndexRepository repo,
@@ -393,7 +602,8 @@ app.MapGet("/s/{code}", async (
 
         return await StreamHelper.StreamFileAsync(absolutePath, entry.MimeType, httpContext, ct);
     })
-    .RequireAuthorization();
+    .RequireAuthorization()
+    .RequireRateLimiting("public-stream");
 
 app.MapGet("/p/{code}", async (
         string code,
@@ -403,13 +613,14 @@ app.MapGet("/p/{code}", async (
         CancellationToken ct) =>
     {
         var entry = await repo.GetByShortCodeAsync(code.ToUpperInvariant(), ct);
-        if (entry is null) return Results.NotFound();
+        if (entry is null || !entry.IsPublic) return Results.NotFound();
 
         var absolutePath = pathResolver.ToAbsolutePath(entry.RelativePath);
         if (!File.Exists(absolutePath)) return Results.NotFound();
 
         return await StreamHelper.StreamFileAsync(absolutePath, entry.MimeType, httpContext, ct);
     })
-    .AllowAnonymous();
+    .AllowAnonymous()
+    .RequireRateLimiting("public-stream");
 
 app.Run();

@@ -22,7 +22,9 @@ import Artplayer from 'artplayer';
 export class VideoPlayerComponent implements OnDestroy {
   src = input.required<string>();
   title = input<string>('');
+  fileId = input<string>('');
   shortCode = input<string>('');
+  isPublic = input<boolean>(false);
   closed = output<void>();
 
   private readonly playerContainer = viewChild.required<ElementRef<HTMLDivElement>>('playerContainer');

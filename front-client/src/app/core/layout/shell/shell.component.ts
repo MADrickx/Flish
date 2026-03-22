@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { AuthStateService } from '../../auth/auth-state.service';
 import { ThemeService } from '../../services/theme.service';
 
@@ -14,6 +15,7 @@ export class ShellComponent {
   protected readonly auth = inject(AuthStateService);
   protected readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
+  private readonly http = inject(HttpClient);
 
   protected readonly navLinks = [
     { path: '/files', label: 'Files', icon: '📁', exact: true },
@@ -24,6 +26,18 @@ export class ShellComponent {
   ];
 
   protected logout(): void {
+    const refreshToken = this.auth.getRefreshToken();
+    if (refreshToken) {
+      this.http.post('/api/auth/logout', { refreshToken }).subscribe({
+        complete: () => this.finishLogout(),
+        error: () => this.finishLogout(),
+      });
+    } else {
+      this.finishLogout();
+    }
+  }
+
+  private finishLogout(): void {
     this.auth.clear();
     void this.router.navigateByUrl('/login');
   }

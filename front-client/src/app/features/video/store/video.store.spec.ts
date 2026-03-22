@@ -3,10 +3,12 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { VideoStore } from './video.store';
 import { MediaItem } from '../../../core/models/media.models';
+import { AuthStateService } from '../../../core/auth/auth-state.service';
 
 describe('VideoStore', () => {
   let store: InstanceType<typeof VideoStore>;
   let httpMock: HttpTestingController;
+  let authState: AuthStateService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -14,9 +16,14 @@ describe('VideoStore', () => {
     });
     store = TestBed.inject(VideoStore);
     httpMock = TestBed.inject(HttpTestingController);
+    authState = TestBed.inject(AuthStateService);
+    authState.setSession('admin', 'test-access-token', 'test-refresh-token');
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.verify();
+    authState.clear();
+  });
 
   it('should start with empty state', () => {
     expect(store.groups()).toEqual([]);
@@ -44,6 +51,7 @@ describe('VideoStore', () => {
               mimeType: 'video/mp4',
               category: 'video',
               shortCode: 'ABC123',
+              isPublic: false,
               lastWriteUtc: '2026-01-01T00:00:00Z',
               indexedAtUtc: '2026-01-01T00:00:00Z',
             },
@@ -63,7 +71,7 @@ describe('VideoStore', () => {
     expect(store.loading()).toBe(false);
   });
 
-  it('should compute streamUrl from shortCode when playing', () => {
+  it('should compute authenticated streamUrl when playing', () => {
     const item: MediaItem = {
       id: 'abc',
       relativePath: 'test.mp4',
@@ -73,13 +81,14 @@ describe('VideoStore', () => {
       mimeType: 'video/mp4',
       category: 'video',
       shortCode: 'XYZ789',
+      isPublic: false,
       lastWriteUtc: '',
       indexedAtUtc: '',
     };
 
     store.play(item);
 
-    expect(store.streamUrl()).toBe('/p/XYZ789');
+    expect(store.streamUrl()).toBe('/api/files/abc/stream?access_token=test-access-token');
     expect(store.playbackStatus()).toBe('playing');
   });
 
@@ -93,6 +102,7 @@ describe('VideoStore', () => {
       mimeType: 'video/mp4',
       category: 'video',
       shortCode: 'XYZ789',
+      isPublic: false,
       lastWriteUtc: '',
       indexedAtUtc: '',
     };

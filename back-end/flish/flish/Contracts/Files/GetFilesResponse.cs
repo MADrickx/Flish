@@ -9,6 +9,7 @@ public sealed record FileItemDto(
     string MimeType,
     string Category,
     string ShortCode,
+    bool IsPublic,
     DateTime LastWriteUtc,
     DateTime IndexedAtUtc
 );
@@ -35,3 +36,4 @@ public sealed record PagedGroupedResponse(
 
 public sealed record RenameFileRequest(string NewFileName);
 
+public sealed record VisibilityRequest(bool IsPublic);

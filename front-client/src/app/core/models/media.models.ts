@@ -9,6 +9,7 @@ export type MediaItem = {
   mimeType: string;
   category: MediaCategory;
   shortCode: string;
+  isPublic: boolean;
   lastWriteUtc: string;
   indexedAtUtc: string;
 };

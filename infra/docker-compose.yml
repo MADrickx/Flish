@@ -34,6 +34,11 @@ services:
       Indexing__ScanIntervalSeconds: ${SCAN_INTERVAL_SECONDS}
       BasicAuth__SeedUser__Username: ${FLISH_BASIC_USER}
       BasicAuth__SeedUser__Password: ${FLISH_BASIC_PASSWORD}
+      Jwt__SecretKey: ${JWT_SECRET_KEY}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      Jwt__ExpirationMinutes: ${JWT_EXPIRATION_MINUTES}
+      Jwt__RefreshTokenExpirationDays: ${JWT_REFRESH_TOKEN_EXPIRATION_DAYS}
     volumes:
       - ${MASTER_DIRECTORY}:/data/master
     expose:

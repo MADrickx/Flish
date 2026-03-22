@@ -1,38 +1,53 @@
 import { Injectable, computed, signal } from '@angular/core';
 
 const USERNAME_KEY = 'flish.username';
-const PASSWORD_KEY = 'flish.password';
+const ACCESS_TOKEN_KEY = 'flish.accessToken';
+const REFRESH_TOKEN_KEY = 'flish.refreshToken';
 
 @Injectable({ providedIn: 'root' })
 export class AuthStateService {
   private readonly usernameState = signal<string>(sessionStorage.getItem(USERNAME_KEY) ?? '');
-  private readonly passwordState = signal<string>(sessionStorage.getItem(PASSWORD_KEY) ?? '');
+  private readonly accessTokenState = signal<string>(sessionStorage.getItem(ACCESS_TOKEN_KEY) ?? '');
+  private readonly refreshTokenState = signal<string>(sessionStorage.getItem(REFRESH_TOKEN_KEY) ?? '');
 
   readonly username = computed(() => this.usernameState());
-  readonly isAuthenticated = computed(() => this.usernameState() !== '' && this.passwordState() !== '');
+  readonly accessToken = computed(() => this.accessTokenState());
+  readonly isAuthenticated = computed(() => this.usernameState() !== '' && this.accessTokenState() !== '');
 
-  setCredentials(username: string, password: string): void {
+  setSession(username: string, accessToken: string, refreshToken: string): void {
     this.usernameState.set(username);
-    this.passwordState.set(password);
+    this.accessTokenState.set(accessToken);
+    this.refreshTokenState.set(refreshToken);
     sessionStorage.setItem(USERNAME_KEY, username);
-    sessionStorage.setItem(PASSWORD_KEY, password);
+    sessionStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    sessionStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  }
+
+  updateTokens(accessToken: string, refreshToken: string): void {
+    this.accessTokenState.set(accessToken);
+    this.refreshTokenState.set(refreshToken);
+    sessionStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    sessionStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   }
 
   clear(): void {
     this.usernameState.set('');
-    this.passwordState.set('');
+    this.accessTokenState.set('');
+    this.refreshTokenState.set('');
     sessionStorage.removeItem(USERNAME_KEY);
-    sessionStorage.removeItem(PASSWORD_KEY);
+    sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
   }
 
-  getBasicAuthHeader(): string | null {
-    const username = this.usernameState();
-    const password = this.passwordState();
-    if (username === '' || password === '') {
+  getBearerHeader(): string | null {
+    const token = this.accessTokenState();
+    if (token === '') {
       return null;
     }
+    return `Bearer ${token}`;
+  }
 
-    return `Basic ${btoa(`${username}:${password}`)}`;
+  getRefreshToken(): string {
+    return this.refreshTokenState();
   }
 }
-

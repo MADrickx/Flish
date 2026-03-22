@@ -13,6 +13,7 @@ public class FileIndexEntry
     public DateTime CreatedUtc { get; set; }
     public string ShortCode { get; set; } = string.Empty;
     public bool IsDeleted { get; set; }
+    public bool IsPublic { get; set; }
     public DateTime IndexedAtUtc { get; set; }
 }
 

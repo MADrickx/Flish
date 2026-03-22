@@ -5,6 +5,11 @@
 <div class="player-container" #playerContainer></div>
 @if (shortCode()) {
   <div class="stream-panel">
-    <app-stream-link [shortCode]="shortCode()" [compact]="false" />
+    <app-stream-link
+      [shortCode]="shortCode()"
+      [fileId]="fileId()"
+      [isPublic]="isPublic()"
+      [compact]="false"
+    />
   </div>
 }

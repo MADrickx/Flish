@@ -3,6 +3,7 @@ import { signalStore, withState, withComputed, withMethods, patchState } from '@
 import { firstValueFrom } from 'rxjs';
 import { VideoApiService } from '../services/video-api.service';
 import { GroupedMediaItem, MediaItem } from '../../../core/models/media.models';
+import { AuthStateService } from '../../../core/auth/auth-state.service';
 
 type PlaybackStatus = 'idle' | 'playing' | 'paused';
 
@@ -34,15 +35,21 @@ export const VideoStore = signalStore(
   { providedIn: 'root' },
   withState(initialState),
 
-  withComputed(({ groups, total, pageSize, nowPlaying }) => ({
-    count: computed(() => groups().length),
-    totalPages: computed(() => Math.max(1, Math.ceil(total() / pageSize()))),
-    hasItems: computed(() => groups().length > 0),
-    streamUrl: computed(() => {
-      const item = nowPlaying();
-      return item ? `/p/${item.shortCode}` : null;
-    }),
-  })),
+  withComputed(({ groups, total, pageSize, nowPlaying }) => {
+    const authState = inject(AuthStateService);
+
+    return {
+      count: computed(() => groups().length),
+      totalPages: computed(() => Math.max(1, Math.ceil(total() / pageSize()))),
+      hasItems: computed(() => groups().length > 0),
+      streamUrl: computed(() => {
+        const item = nowPlaying();
+        if (!item) return null;
+        const token = authState.accessToken();
+        return `/api/files/${item.id}/stream?access_token=${encodeURIComponent(token)}`;
+      }),
+    };
+  }),
 
   withMethods((store, api = inject(VideoApiService)) => ({
     async load() {

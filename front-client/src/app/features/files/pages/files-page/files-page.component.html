@@ -72,7 +72,7 @@
               <td class="path">{{ item.relativePath }}</td>
               <td>{{ item.category }}</td>
               <td>{{ toBytes(item.sizeBytes) }}</td>
-              <td><app-stream-link [shortCode]="item.shortCode" /></td>
+              <td><app-stream-link [shortCode]="item.shortCode" [fileId]="item.id" [isPublic]="item.isPublic" /></td>
               <td>{{ item.lastWriteUtc | date: 'medium' }}</td>
               <td class="row-actions">
                 <a class="btn ghost icon-btn" [href]="api.downloadUrl(item.id)" target="_blank" rel="noopener">

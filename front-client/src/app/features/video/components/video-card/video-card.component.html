@@ -20,7 +20,7 @@
 
   <div class="meta">
     {{ formatSize(selected().sizeBytes) }}
-    <app-stream-link [shortCode]="selected().shortCode" />
+    <app-stream-link [shortCode]="selected().shortCode" [fileId]="selected().id" [isPublic]="selected().isPublic" />
   </div>
 
   <div class="actions-row">

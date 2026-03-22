@@ -4,6 +4,13 @@ import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthStateService } from '../../../../core/auth/auth-state.service';
 
+type LoginResponse = {
+  username: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresInSeconds: number;
+};
+
 @Component({
   selector: 'app-login-page',
   imports: [FormsModule],
@@ -25,17 +32,17 @@ export class LoginPageComponent {
     this.loading.set(true);
     this.error.set('');
 
-    this.authState.setCredentials(this.username.trim(), this.password);
-    this.http.post('/api/auth/login', {}).subscribe({
-      next: () => {
+    const body = { username: this.username.trim(), password: this.password };
+    this.http.post<LoginResponse>('/api/auth/login', body).subscribe({
+      next: (response) => {
+        this.authState.setSession(response.username, response.accessToken, response.refreshToken);
         this.loading.set(false);
         void this.router.navigateByUrl('/');
       },
       error: () => {
-        this.authState.clear();
         this.loading.set(false);
         this.error.set('Invalid credentials.');
-      }
+      },
     });
   }
 }
