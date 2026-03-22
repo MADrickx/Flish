@@ -3,9 +3,11 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { PhotosStore } from './photos.store';
 import { MediaItem } from '../../../core/models/media.models';
+import { AuthStateService } from '../../../core/auth/auth-state.service';
 
 describe('PhotosStore', () => {
   let store: InstanceType<typeof PhotosStore>;
+  let authState: AuthStateService;
 
   const mockPhoto: MediaItem = {
     id: 'photo-1',
@@ -16,6 +18,7 @@ describe('PhotosStore', () => {
     mimeType: 'image/jpeg',
     category: 'photo',
     shortCode: 'PHT123',
+    isPublic: false,
     lastWriteUtc: '',
     indexedAtUtc: '',
   };
@@ -31,7 +34,11 @@ describe('PhotosStore', () => {
       providers: [PhotosStore, provideHttpClient(), provideHttpClientTesting()],
     });
     store = TestBed.inject(PhotosStore);
+    authState = TestBed.inject(AuthStateService);
+    authState.setSession('admin', 'test-access-token', 'test-refresh-token');
   });
+
+  afterEach(() => authState.clear());
 
   it('should start with no photo viewing', () => {
     expect(store.viewing()).toBeNull();
@@ -41,7 +48,7 @@ describe('PhotosStore', () => {
 
   it('should compute viewUrl when viewing a photo', () => {
     store.view(mockPhoto);
-    expect(store.viewUrl()).toBe('/api/files/photo-1/download');
+    expect(store.viewUrl()).toBe('/api/files/photo-1/download?access_token=test-access-token');
     expect(store.isViewing()).toBe(true);
   });
 
