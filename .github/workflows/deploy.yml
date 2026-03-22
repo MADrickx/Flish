@@ -11,6 +11,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Require deploy secrets
+        env:
+          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          missing=0
+          [ -z "$VPS_HOST" ] && { echo "::error::Secret VPS_HOST is missing or empty."; missing=1; }
+          [ -z "$VPS_USER" ] && { echo "::error::Secret VPS_USER is missing or empty."; missing=1; }
+          [ -z "$VPS_SSH_KEY" ] && { echo "::error::Secret VPS_SSH_KEY is missing or empty."; missing=1; }
+          [ -z "$VPS_DEPLOY_PATH" ] && { echo "::error::Secret VPS_DEPLOY_PATH is missing or empty. Set an absolute path on the VPS (e.g. /root/flish)."; missing=1; }
+          exit $missing
+
       # drone-scp fails with "create folder" / exit 1 if the target path (or parents) does not exist.
       - name: Ensure deploy directory exists on VPS
         uses: appleboy/ssh-action@v1.0.3
