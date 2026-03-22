@@ -2,9 +2,11 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { PagedResponse } from '../models/media.models';
+import { AuthStateService } from '../auth/auth-state.service';
 
 export abstract class BaseApiService<T extends { id: string }> {
   protected readonly http = inject(HttpClient);
+  protected readonly auth = inject(AuthStateService);
   protected abstract readonly basePath: string;
 
   list(page: number, pageSize: number, extra?: Record<string, string>): Observable<PagedResponse<T>> {
@@ -28,10 +30,10 @@ export abstract class BaseApiService<T extends { id: string }> {
   }
 
   streamUrl(id: string): string {
-    return `${this.basePath}/${id}/stream`;
+    return `${this.basePath}/${id}/stream?access_token=${encodeURIComponent(this.auth.accessToken())}`;
   }
 
   downloadUrl(id: string): string {
-    return `${this.basePath}/${id}/download`;
+    return `${this.basePath}/${id}/download?access_token=${encodeURIComponent(this.auth.accessToken())}`;
   }
 }

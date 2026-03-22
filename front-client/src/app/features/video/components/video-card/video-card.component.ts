@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output, si
 import { UpperCasePipe } from '@angular/common';
 import { StreamLinkComponent } from '../../../../core/components/stream-link/stream-link.component';
 import { TranscodeTrackerService } from '../../../../core/services/transcode-tracker.service';
+import { AuthStateService } from '../../../../core/auth/auth-state.service';
 import { GroupedMediaItem, MediaItem, formatBytes } from '../../../../core/models/media.models';
 
 @Component({
@@ -13,6 +14,7 @@ import { GroupedMediaItem, MediaItem, formatBytes } from '../../../../core/model
 })
 export class VideoCardComponent {
   private readonly tracker = inject(TranscodeTrackerService);
+  private readonly auth = inject(AuthStateService);
 
   group = input.required<GroupedMediaItem>();
   played = output<MediaItem>();
@@ -63,6 +65,6 @@ export class VideoCardComponent {
   }
 
   protected downloadUrl(id: string): string {
-    return `/api/files/${id}/download`;
+    return `/api/files/${id}/download?access_token=${encodeURIComponent(this.auth.accessToken())}`;
   }
 }

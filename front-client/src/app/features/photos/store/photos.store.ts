@@ -3,6 +3,7 @@ import { signalStore, withState, withComputed, withMethods, patchState } from '@
 import { firstValueFrom } from 'rxjs';
 import { PhotosApiService } from '../services/photos-api.service';
 import { MediaItem } from '../../../core/models/media.models';
+import { AuthStateService } from '../../../core/auth/auth-state.service';
 
 type PhotosState = {
   items: MediaItem[];
@@ -30,15 +31,21 @@ export const PhotosStore = signalStore(
   { providedIn: 'root' },
   withState(initialState),
 
-  withComputed(({ items, total, pageSize, viewing }) => ({
-    count: computed(() => items().length),
-    totalPages: computed(() => Math.max(1, Math.ceil(total() / pageSize()))),
-    viewUrl: computed(() => {
-      const item = viewing();
-      return item ? `/api/files/${item.id}/download` : null;
-    }),
-    isViewing: computed(() => viewing() !== null),
-  })),
+  withComputed(({ items, total, pageSize, viewing }) => {
+    const authState = inject(AuthStateService);
+
+    return {
+      count: computed(() => items().length),
+      totalPages: computed(() => Math.max(1, Math.ceil(total() / pageSize()))),
+      viewUrl: computed(() => {
+        const item = viewing();
+        if (!item) return null;
+        const token = authState.accessToken();
+        return `/api/files/${item.id}/download?access_token=${encodeURIComponent(token)}`;
+      }),
+      isViewing: computed(() => viewing() !== null),
+    };
+  }),
 
   withMethods((store, api = inject(PhotosApiService)) => ({
     async load() {
