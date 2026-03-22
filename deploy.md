@@ -259,7 +259,7 @@ Keep `~/.ssh/flish_deploy` only on your machine (or a password manager backup). 
 
 - **`VPS_HOST`** — VPS IP or hostname (same host you used in the `ssh` test).
 - **`VPS_USER`** — same `YOUR_USER` as `authorized_keys`.
-- **`VPS_DEPLOY_PATH`** — absolute path on the server where deploy uploads files (must contain `infra/` after deploy).
+- **`VPS_DEPLOY_PATH`** — absolute path on the server where deploy uploads files (must contain `infra/` after deploy). No accidental newline or spaces in the secret value. The workflow runs `mkdir -p` on this path before SCP; the SSH user must be allowed to create that path (e.g. under `/root` or `/home/youruser`).
 
 ---
 
@@ -273,9 +273,10 @@ git push origin deploy
 
 GitHub Actions will:
 
-1. Upload `back-end`, `front-client`, `infra`, `README.md`, and `docs` to `VPS_DEPLOY_PATH`.
-2. SSH into the VPS, `cd` into `infra`, ensure `.env` exists (from `.env.example` if missing), then `docker compose build` and `up -d`.
-3. Run a **health check** against `http://127.0.0.1:$WEB_PORT/health/ready` (with `WEB_PORT` loaded from `.env`).
+1. SSH once to `mkdir -p` **`VPS_DEPLOY_PATH`** (so `appleboy/scp-action` can extract files there).
+2. Upload `back-end`, `front-client`, `infra`, `README.md`, and `docs` to `VPS_DEPLOY_PATH`.
+3. SSH into the VPS, `cd` into `infra`, ensure `.env` exists (from `.env.example` if missing), then `docker compose build` and `up -d`.
+4. Run a **health check** against `http://127.0.0.1:$WEB_PORT/health/ready` (with `WEB_PORT` loaded from `.env`).
 
 ### 11. Verify manually
 
@@ -311,6 +312,7 @@ From your PC browser:
 | Uploads / indexing fail, permission denied on files | `MASTER_DIRECTORY` exists on the host, matches `.env`, and is writable by the API process; see §4 and `docker compose logs api` |
 | Actions: `ssh.ParsePrivateKey: ssh: no key found` | `VPS_SSH_KEY` is missing, truncated, or not a valid **private** key (wrong paste, public key in secret, passphrase-only key mishandled). Re-paste the full private key per §9. |
 | Actions: `unable to authenticate` / `attempted methods [none]` | Often follows invalid key; or wrong `VPS_USER`, or public key not in `authorized_keys` for that user. Test SSH from your PC (§9). |
+| Actions: SCP `create folder` / `Process exited with status 1` | **`VPS_DEPLOY_PATH`** wrong, not creatable by `VPS_USER`, or secret has a stray newline. The workflow creates the path with `mkdir -p` first — fix the secret and ensure the user may write there (e.g. not another user’s home without access). |
 
 ---
 

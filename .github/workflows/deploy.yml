@@ -11,6 +11,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # drone-scp fails with "create folder" / exit 1 if the target path (or parents) does not exist.
+      - name: Ensure deploy directory exists on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            mkdir -p "${{ secrets.VPS_DEPLOY_PATH }}"
+
       - name: Upload project to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
