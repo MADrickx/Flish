@@ -54,6 +54,19 @@ Authentication: HTTP Basic Auth.
   - Triggers on-demand full scan
   - Rate-limited
 
+## Short Code Streaming (VLC / External Players)
+
+- `GET /s/{code}` (requires Basic Auth)
+  - Streams file by short code with Range support
+  - VLC prompts for credentials once and caches them
+  - URL: `http://your-vps:8080/s/X7K9AB`
+
+- `GET /p/{code}` (public, no auth)
+  - Same streaming, no authentication required
+  - URL: `http://your-vps:8080/p/X7K9AB`
+
+Short codes are 6-character alphanumeric strings (alphabet: `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`, no ambiguous chars). Generated during indexing and stable across re-scans.
+
 ## Health
 
 - `GET /health/live`

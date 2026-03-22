@@ -44,6 +44,7 @@
             <th>Path</th>
             <th>Type</th>
             <th>Size</th>
+            <th>Code</th>
             <th>Updated</th>
             <th>Actions</th>
           </tr>
@@ -55,6 +56,7 @@
               <td class="path">{{ item.relativePath }}</td>
               <td>{{ item.category }}</td>
               <td>{{ toBytes(item.sizeBytes) }}</td>
+              <td><app-stream-link [shortCode]="item.shortCode" /></td>
               <td>{{ item.lastWriteUtc | date: 'medium' }}</td>
               <td class="row-actions">
                 <a class="btn ghost icon-btn" [href]="api.downloadUrl(item.id)" target="_blank" rel="noopener">
@@ -67,7 +69,7 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="6" class="state">No files found.</td>
+              <td colspan="7" class="state">No files found.</td>
             </tr>
           }
         </tbody>

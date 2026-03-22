@@ -38,6 +38,7 @@ describe('VideoStore', () => {
           sizeBytes: 1024,
           mimeType: 'video/mp4',
           category: 'video',
+          shortCode: 'ABC123',
           lastWriteUtc: '2026-01-01T00:00:00Z',
           indexedAtUtc: '2026-01-01T00:00:00Z',
         },
@@ -64,6 +65,7 @@ describe('VideoStore', () => {
       sizeBytes: 100,
       mimeType: 'video/mp4',
       category: 'video' as const,
+      shortCode: 'XYZ789',
       lastWriteUtc: '',
       indexedAtUtc: '',
     };
@@ -83,6 +85,7 @@ describe('VideoStore', () => {
       sizeBytes: 100,
       mimeType: 'video/mp4',
       category: 'video' as const,
+      shortCode: 'XYZ789',
       lastWriteUtc: '',
       indexedAtUtc: '',
     };

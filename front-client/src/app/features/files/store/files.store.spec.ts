@@ -42,6 +42,7 @@ describe('FilesStore', () => {
           sizeBytes: 512,
           mimeType: 'text/plain',
           category: 'document',
+          shortCode: 'DOC123',
           lastWriteUtc: '2026-01-01T00:00:00Z',
           indexedAtUtc: '2026-01-01T00:00:00Z',
         },
@@ -111,8 +112,8 @@ describe('FilesStore', () => {
     const req = httpMock.expectOne((r) => r.url === '/api/files');
     req.flush({
       items: [
-        { id: 'a', relativePath: 'a.txt', fileName: 'a.txt', extension: 'txt', sizeBytes: 1, mimeType: 'text/plain', category: 'document', lastWriteUtc: '', indexedAtUtc: '' },
-        { id: 'b', relativePath: 'b.txt', fileName: 'b.txt', extension: 'txt', sizeBytes: 1, mimeType: 'text/plain', category: 'document', lastWriteUtc: '', indexedAtUtc: '' },
+        { id: 'a', relativePath: 'a.txt', fileName: 'a.txt', extension: 'txt', sizeBytes: 1, mimeType: 'text/plain', category: 'document', shortCode: 'AAA111', lastWriteUtc: '', indexedAtUtc: '' },
+        { id: 'b', relativePath: 'b.txt', fileName: 'b.txt', extension: 'txt', sizeBytes: 1, mimeType: 'text/plain', category: 'document', shortCode: 'BBB222', lastWriteUtc: '', indexedAtUtc: '' },
       ],
       page: 1,
       pageSize: 25,

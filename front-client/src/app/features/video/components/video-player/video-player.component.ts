@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, input, output, viewChild, ElementRef, afterNextRender } from '@angular/core';
+import { StreamLinkComponent } from '../../../../core/components/stream-link/stream-link.component';
 
 @Component({
   selector: 'app-video-player',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [StreamLinkComponent],
   host: {
     '(keydown)': 'onKeydown($event)',
     tabindex: '-1',
@@ -13,6 +15,7 @@ import { ChangeDetectionStrategy, Component, input, output, viewChild, ElementRe
 export class VideoPlayerComponent {
   src = input.required<string>();
   title = input<string>('');
+  shortCode = input<string>('');
   closed = output<void>();
 
   private readonly videoEl = viewChild.required<ElementRef<HTMLVideoElement>>('videoEl');

@@ -15,6 +15,7 @@ describe('PhotosStore', () => {
     sizeBytes: 2048,
     mimeType: 'image/jpeg',
     category: 'photo',
+    shortCode: 'PHT123',
     lastWriteUtc: '',
     indexedAtUtc: '',
   };

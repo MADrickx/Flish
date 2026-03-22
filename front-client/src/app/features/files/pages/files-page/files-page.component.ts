@@ -5,6 +5,7 @@ import { formatBytes, MediaCategory } from '../../../../core/models/media.models
 import { FilesApiService } from '../../services/files-api.service';
 import { FilesStore } from '../../store/files.store';
 import { LoadingSpinnerComponent } from '../../../../core/components/loading-spinner/loading-spinner.component';
+import { StreamLinkComponent } from '../../../../core/components/stream-link/stream-link.component';
 
 const CATEGORIES: { value: MediaCategory | ''; label: string }[] = [
   { value: '', label: 'All' },
@@ -17,7 +18,7 @@ const CATEGORIES: { value: MediaCategory | ''; label: string }[] = [
 
 @Component({
   selector: 'app-files-page',
-  imports: [FormsModule, DatePipe, LoadingSpinnerComponent],
+  imports: [FormsModule, DatePipe, LoadingSpinnerComponent, StreamLinkComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './files-page.component.css',
   templateUrl: './files-page.component.html',

@@ -187,52 +187,12 @@ api.MapGet("/files/{id:guid}/stream", async (
         CancellationToken cancellationToken) =>
     {
         var entry = await repo.GetActiveByIdAsync(id, cancellationToken);
-
-        if (entry is null)
-            return Results.NotFound();
+        if (entry is null) return Results.NotFound();
 
         var absolutePath = pathResolver.ToAbsolutePath(entry.RelativePath);
-        if (!File.Exists(absolutePath))
-            return Results.NotFound();
+        if (!File.Exists(absolutePath)) return Results.NotFound();
 
-        var fileLength = new FileInfo(absolutePath).Length;
-        var rangeHeader = httpContext.Request.Headers.Range.ToString();
-
-        if (!string.IsNullOrWhiteSpace(rangeHeader) && rangeHeader.StartsWith("bytes="))
-        {
-            var rangeParts = rangeHeader["bytes=".Length..].Split('-');
-            var start = long.Parse(rangeParts[0]);
-            var end = rangeParts.Length > 1 && long.TryParse(rangeParts[1], out var e) && e > 0
-                ? Math.Min(e, fileLength - 1)
-                : fileLength - 1;
-            var chunkLength = end - start + 1;
-
-            httpContext.Response.StatusCode = 206;
-            httpContext.Response.Headers.ContentRange = $"bytes {start}-{end}/{fileLength}";
-            httpContext.Response.Headers.AcceptRanges = "bytes";
-            httpContext.Response.ContentType = entry.MimeType;
-            httpContext.Response.ContentLength = chunkLength;
-
-            await using var fs = new FileStream(absolutePath, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, true);
-            fs.Seek(start, SeekOrigin.Begin);
-
-            var buffer = new byte[64 * 1024];
-            var remaining = chunkLength;
-            while (remaining > 0)
-            {
-                var toRead = (int)Math.Min(buffer.Length, remaining);
-                var read = await fs.ReadAsync(buffer.AsMemory(0, toRead), cancellationToken);
-                if (read == 0) break;
-                await httpContext.Response.Body.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
-                remaining -= read;
-            }
-
-            return Results.Empty;
-        }
-
-        httpContext.Response.Headers.AcceptRanges = "bytes";
-        var fullStream = new FileStream(absolutePath, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, true);
-        return Results.File(fullStream, entry.MimeType, enableRangeProcessing: true);
+        return await StreamHelper.StreamFileAsync(absolutePath, entry.MimeType, httpContext, cancellationToken);
     });
 
 api.MapPost("/files/upload", async (
@@ -324,5 +284,39 @@ api.MapPost("/index/rebuild", async (IFileIndexer indexer, CancellationToken can
     await indexer.RunOnceAsync(cancellationToken);
     return Results.Accepted("/api/index/status");
 }).RequireRateLimiting("writes");
+
+app.MapGet("/s/{code}", async (
+        string code,
+        FileIndexRepository repo,
+        FilePathResolver pathResolver,
+        HttpContext httpContext,
+        CancellationToken ct) =>
+    {
+        var entry = await repo.GetByShortCodeAsync(code.ToUpperInvariant(), ct);
+        if (entry is null) return Results.NotFound();
+
+        var absolutePath = pathResolver.ToAbsolutePath(entry.RelativePath);
+        if (!File.Exists(absolutePath)) return Results.NotFound();
+
+        return await StreamHelper.StreamFileAsync(absolutePath, entry.MimeType, httpContext, ct);
+    })
+    .RequireAuthorization();
+
+app.MapGet("/p/{code}", async (
+        string code,
+        FileIndexRepository repo,
+        FilePathResolver pathResolver,
+        HttpContext httpContext,
+        CancellationToken ct) =>
+    {
+        var entry = await repo.GetByShortCodeAsync(code.ToUpperInvariant(), ct);
+        if (entry is null) return Results.NotFound();
+
+        var absolutePath = pathResolver.ToAbsolutePath(entry.RelativePath);
+        if (!File.Exists(absolutePath)) return Results.NotFound();
+
+        return await StreamHelper.StreamFileAsync(absolutePath, entry.MimeType, httpContext, ct);
+    })
+    .AllowAnonymous();
 
 app.Run();

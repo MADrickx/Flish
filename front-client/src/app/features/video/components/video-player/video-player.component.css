@@ -46,6 +46,12 @@ video {
   max-height: 75dvh;
 }
 
+.stream-panel {
+  padding: 0.65rem 0.75rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
 .hint {
   text-align: center;
   padding: 0.3rem;

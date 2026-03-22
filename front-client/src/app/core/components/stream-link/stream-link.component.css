@@ -1,0 +1,81 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.code {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  padding: 0.12rem 0.35rem;
+  border-radius: var(--radius-sm);
+  user-select: all;
+}
+
+.copy-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-soft);
+  padding: 0.15rem 0.35rem;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 600;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.copy-btn:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.expanded {
+  display: grid;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.code-display {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  font-size: 2rem;
+  letter-spacing: 0.15em;
+  text-align: center;
+  color: var(--primary);
+  padding: 0.5rem;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  border-radius: var(--radius);
+  user-select: all;
+}
+
+.url-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.label {
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  min-width: 10rem;
+}
+
+.url {
+  flex: 1;
+  font-size: 0.8rem;
+  color: var(--text);
+  background: var(--bg);
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: all;
+}

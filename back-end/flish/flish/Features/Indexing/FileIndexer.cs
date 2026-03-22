@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using flish.Infrastructure.Persistence;
 using flish.Infrastructure.Persistence.Entities;
 using flish.Infrastructure.Storage;
@@ -72,6 +73,7 @@ public sealed class FileIndexer(
                         SizeBytes = fileInfo.Length,
                         MimeType = mimeType,
                         Category = category,
+                        ShortCode = GenerateShortCode(),
                         LastWriteUtc = fileInfo.LastWriteTimeUtc,
                         CreatedUtc = fileInfo.CreationTimeUtc,
                         IsDeleted = false,
@@ -128,5 +130,13 @@ public sealed class FileIndexer(
             LastSoftDeletedFiles = _status.LastSoftDeletedFiles,
             LastError = _status.LastError
         };
+
+    private static readonly char[] ShortCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".ToCharArray();
+
+    internal static string GenerateShortCode()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(6);
+        return new string(bytes.Select(b => ShortCodeAlphabet[b % ShortCodeAlphabet.Length]).ToArray());
+    }
 }
 

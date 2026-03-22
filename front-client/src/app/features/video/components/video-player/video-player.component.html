@@ -9,4 +9,9 @@
   autoplay
   preload="metadata"
 ></video>
+@if (shortCode()) {
+  <div class="stream-panel">
+    <app-stream-link [shortCode]="shortCode()" [compact]="false" />
+  </div>
+}
 <div class="hint">Space: play/pause &middot; Left/Right: seek 10s &middot; F: fullscreen &middot; Esc: close</div>

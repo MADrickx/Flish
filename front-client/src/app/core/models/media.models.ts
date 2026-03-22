@@ -8,6 +8,7 @@ export type MediaItem = {
   sizeBytes: number;
   mimeType: string;
   category: MediaCategory;
+  shortCode: string;
   lastWriteUtc: string;
   indexedAtUtc: string;
 };

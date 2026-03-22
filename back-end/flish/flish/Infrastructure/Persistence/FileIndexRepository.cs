@@ -45,11 +45,7 @@ public class FileIndexRepository(FlishDbContext dbContext) : Repository<FileInde
             .OrderBy(x => x.RelativePath)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(x => new FileItemDto(
-                x.Id, x.RelativePath, x.FileName, x.Extension,
-                x.SizeBytes, x.MimeType, x.Category,
-                x.LastWriteUtc, x.IndexedAtUtc
-            ))
+            .Select(x => ToDto(x))
             .ToListAsync(ct);
 
         return (items, total);
@@ -60,11 +56,7 @@ public class FileIndexRepository(FlishDbContext dbContext) : Repository<FileInde
         return await DbSet
             .AsNoTracking()
             .Where(x => !x.IsDeleted && x.Id == id)
-            .Select(x => new FileItemDto(
-                x.Id, x.RelativePath, x.FileName, x.Extension,
-                x.SizeBytes, x.MimeType, x.Category,
-                x.LastWriteUtc, x.IndexedAtUtc
-            ))
+            .Select(x => ToDto(x))
             .FirstOrDefaultAsync(ct);
     }
 
@@ -72,4 +64,14 @@ public class FileIndexRepository(FlishDbContext dbContext) : Repository<FileInde
     {
         return await DbSet.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
     }
+
+    public async Task<FileIndexEntry?> GetByShortCodeAsync(string code, CancellationToken ct)
+    {
+        return await DbSet.AsNoTracking().FirstOrDefaultAsync(x => x.ShortCode == code && !x.IsDeleted, ct);
+    }
+
+    private static FileItemDto ToDto(FileIndexEntry x) =>
+        new(x.Id, x.RelativePath, x.FileName, x.Extension,
+            x.SizeBytes, x.MimeType, x.Category, x.ShortCode,
+            x.LastWriteUtc, x.IndexedAtUtc);
 }

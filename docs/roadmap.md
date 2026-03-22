@@ -48,7 +48,8 @@ Status of what's been built and what remains to deliver v1 of the multimedia VPS
 - [x] Responsive layout throughout
 - [x] Lazy-loaded feature routes behind auth guard
 - [x] Dev proxy (`proxy.conf.json`) for local development
-- [x] **26 tests passing** across 6 test files
+- [x] **26 frontend tests passing** across 6 test files
+- [x] **20 backend unit tests** (FilePathResolver, PasswordHasher, MimeTypeMap, ShortCode)
 
 ### Infrastructure
 
@@ -64,6 +65,8 @@ Status of what's been built and what remains to deliver v1 of the multimedia VPS
 - [x] 7 Flish-specific skills + general development skills
 
 ---
+
+- [x] **VLC stream URLs**: short codes (`/s/{code}` authenticated + `/p/{code}` public), `StreamHelper` refactor, `stream-link` component in all media views
 
 ## Future Ideas
 

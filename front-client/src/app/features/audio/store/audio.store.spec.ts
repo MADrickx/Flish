@@ -15,6 +15,7 @@ describe('AudioStore', () => {
     sizeBytes: 5000,
     mimeType: 'audio/mpeg',
     category: 'audio',
+    shortCode: 'AUD123',
     lastWriteUtc: '',
     indexedAtUtc: '',
   };

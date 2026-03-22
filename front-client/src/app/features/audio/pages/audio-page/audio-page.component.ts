@@ -5,11 +5,12 @@ import { AudioPlayerBarComponent } from '../../components/audio-player-bar/audio
 import { LoadingSpinnerComponent } from '../../../../core/components/loading-spinner/loading-spinner.component';
 import { EmptyStateComponent } from '../../../../core/components/empty-state/empty-state.component';
 import { formatBytes, MediaItem } from '../../../../core/models/media.models';
+import { StreamLinkComponent } from '../../../../core/components/stream-link/stream-link.component';
 
 @Component({
   selector: 'app-audio-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, AudioPlayerBarComponent, LoadingSpinnerComponent, EmptyStateComponent],
+  imports: [FormsModule, AudioPlayerBarComponent, LoadingSpinnerComponent, EmptyStateComponent, StreamLinkComponent],
   templateUrl: './audio-page.component.html',
   styleUrl: './audio-page.component.css',
 })

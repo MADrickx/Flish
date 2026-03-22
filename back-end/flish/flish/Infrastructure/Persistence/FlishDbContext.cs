@@ -20,6 +20,8 @@ public class FlishDbContext(DbContextOptions<FlishDbContext> options) : DbContex
             entity.Property(x => x.MimeType).HasMaxLength(255).IsRequired();
             entity.Property(x => x.Category).HasMaxLength(32).IsRequired();
             entity.HasIndex(x => x.RelativePath).IsUnique();
+            entity.Property(x => x.ShortCode).HasMaxLength(8).IsRequired();
+            entity.HasIndex(x => x.ShortCode).IsUnique();
             entity.HasIndex(x => x.IsDeleted);
             entity.HasIndex(x => x.Category);
         });

@@ -4,5 +4,8 @@
 </div>
 <div class="info">
   <div class="name">{{ fileName() }}</div>
-  <div class="meta">{{ size() }} &middot; {{ extension() }}</div>
+  <div class="meta">
+    {{ size() }} &middot; {{ extension() }}
+    <app-stream-link [shortCode]="shortCode()" />
+  </div>
 </div>

@@ -273,10 +273,14 @@ tbody tr:hover td {
   }
 
   td:nth-child(5)::before {
-    content: 'Updated';
+    content: 'Code';
   }
 
   td:nth-child(6)::before {
+    content: 'Updated';
+  }
+
+  td:nth-child(7)::before {
     content: 'Actions';
   }
 

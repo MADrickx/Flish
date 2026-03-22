@@ -3,6 +3,7 @@
     <app-video-player
       [src]="store.streamUrl()!"
       [title]="playing.fileName"
+      [shortCode]="playing.shortCode"
       (closed)="store.stop()"
     />
   }
@@ -32,6 +33,7 @@
           [fileName]="item.fileName"
           [extension]="item.extension"
           [size]="toBytes(item.sizeBytes)"
+          [shortCode]="item.shortCode"
           (selected)="store.play(item)"
         />
       }
