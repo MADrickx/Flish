@@ -132,7 +132,11 @@ using (var scope = app.Services.CreateScope())
     await seeder.SeedAsync(CancellationToken.None);
 }
 
-app.UseHttpsRedirection();
+// Kestrel is HTTP-only in Docker; TLS terminates at nginx if added. HTTPS redirection breaks internal http://api:8080 calls.
+if (!string.Equals(Environment.GetEnvironmentVariable("FLISH_DISABLE_HTTPS_REDIRECTION"), "true", StringComparison.OrdinalIgnoreCase))
+{
+    app.UseHttpsRedirection();
+}
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

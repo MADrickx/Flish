@@ -307,7 +307,7 @@ From your PC browser:
 |---------|------------------|
 | Connection refused from browser | Firewall, wrong `WEB_PORT`, or container not running (`docker compose ps` in `infra`) |
 | 502 / bad gateway on `/api/` | API container logs: `docker compose logs api` |
-| Deploy fails on health check | API not ready yet (retry), or `WEB_PORT` in `.env` doesn’t match the mapped port |
+| Deploy fails on health check | API/nginx not ready yet (workflow retries 30×); or `WEB_PORT` in `.env` doesn’t match the mapped port; or `curl: (56) Recv failure` — fixed by disabling HTTPS redirection in Docker (`FLISH_DISABLE_HTTPS_REDIRECTION`), API `healthcheck`, and deploy retries |
 | Out of disk | `df -h`, Docker prune if appropriate |
 | Uploads / indexing fail, permission denied on files | `MASTER_DIRECTORY` exists on the host, matches `.env`, and is writable by the API process; see §4 and `docker compose logs api` |
 | Actions: `ssh.ParsePrivateKey: ssh: no key found` | `VPS_SSH_KEY` is missing, truncated, or not a valid **private** key (wrong paste, public key in secret, passphrase-only key mishandled). Re-paste the full private key per §9. |

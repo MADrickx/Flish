@@ -29,6 +29,7 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      FLISH_DISABLE_HTTPS_REDIRECTION: "true"
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Storage__MasterDirectory: /data/master
       Storage__MaxUploadBytes: ${MAX_UPLOAD_BYTES}
@@ -44,6 +45,12 @@ services:
       - ${MASTER_DIRECTORY}:/data/master
     expose:
       - "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/health/ready >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
 
   web:
     build:
@@ -52,7 +59,8 @@ services:
     container_name: flish-web
     restart: unless-stopped
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     ports:
       - "${WEB_PORT}:80"
 

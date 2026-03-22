@@ -60,5 +60,15 @@ jobs:
             set -a
             . ./.env
             set +a
-            curl -f "http://127.0.0.1:${WEB_PORT:-1604}/health/ready"
+            port="${WEB_PORT:-1604}"
+            for attempt in $(seq 1 30); do
+              if curl -fsS "http://127.0.0.1:${port}/health/ready"; then
+                echo "Health check OK (attempt ${attempt})"
+                exit 0
+              fi
+              echo "Waiting for app on port ${port} (attempt ${attempt}/30)..."
+              sleep 2
+            done
+            echo "::error::Health check failed after 30 attempts"
+            exit 1
 
