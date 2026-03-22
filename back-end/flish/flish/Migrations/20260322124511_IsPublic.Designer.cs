@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using flish.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using flish.Infrastructure.Persistence;
 namespace flish.Migrations
 {
     [DbContext(typeof(FlishDbContext))]
-    partial class FlishDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260322124511_IsPublic")]
+    partial class IsPublic
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
