@@ -21,5 +21,5 @@ infra/docker-compose.override.yml.example.env.example.env
 front-client/node_modules/
 back-end/flish/flish/obj/
 back-end/flish/flish/bin/
+# Root-only upload dir; do not use plain `storage/` — it ignores any *Storage* folder (e.g. Infrastructure/Storage).
 /storage/
-storage/
