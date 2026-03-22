@@ -312,6 +312,7 @@ From your PC browser:
 | Uploads / indexing fail, permission denied on files | `MASTER_DIRECTORY` exists on the host, matches `.env`, and is writable by the API process; see §4 and `docker compose logs api` |
 | Actions: `ssh.ParsePrivateKey: ssh: no key found` | `VPS_SSH_KEY` is missing, truncated, or not a valid **private** key (wrong paste, public key in secret, passphrase-only key mishandled). Re-paste the full private key per §9. |
 | Actions: `unable to authenticate` / `attempted methods [none]` | Often follows invalid key; or wrong `VPS_USER`, or public key not in `authorized_keys` for that user. Test SSH from your PC (§9). |
+| Actions: `mkdir -p ""` / `cannot create directory ''` | **`VPS_DEPLOY_PATH`** is missing or empty in GitHub Secrets — add it (e.g. `/root/flish`). The workflow fails early in **Require deploy secrets** if unset. |
 | Actions: SCP `create folder` / `Process exited with status 1` | **`VPS_DEPLOY_PATH`** wrong, not creatable by `VPS_USER`, or secret has a stray newline. The workflow creates the path with `mkdir -p` first — fix the secret and ensure the user may write there (e.g. not another user’s home without access). |
 
 ---
