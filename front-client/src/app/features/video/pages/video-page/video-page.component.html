@@ -30,6 +30,7 @@
     <div class="grid">
       @for (item of store.items(); track item.id) {
         <app-video-card
+          [fileId]="item.id"
           [fileName]="item.fileName"
           [extension]="item.extension"
           [size]="toBytes(item.sizeBytes)"

@@ -72,7 +72,7 @@ describe('VideoStore', () => {
 
     store.play(item);
 
-    expect(store.streamUrl()).toBe('/api/files/abc/stream');
+    expect(store.streamUrl()).toBe('/p/XYZ789');
     expect(store.playbackStatus()).toBe('playing');
   });
 

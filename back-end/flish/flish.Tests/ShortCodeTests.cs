@@ -1,4 +1,5 @@
 using flish.Features.Indexing;
+using Xunit;
 
 namespace flish.Tests;
 

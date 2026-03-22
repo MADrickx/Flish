@@ -6,7 +6,11 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "db:start": "docker compose -f ../infra/docker-compose.yml --env-file ../infra/.env up -d db",
+    "db:stop": "docker compose -f ../infra/docker-compose.yml --env-file ../infra/.env down",
+    "db:logs": "docker compose -f ../infra/docker-compose.yml --env-file ../infra/.env logs -f db",
+    "db:status": "docker ps --filter name=flish-db --format \"table {{.Names}}\\t{{.Status}}\\t{{.Ports}}\""
   },
   "prettier": {
     "printWidth": 100,
@@ -30,6 +34,7 @@
     "@angular/platform-browser": "^21.1.0",
     "@angular/router": "^21.1.0",
     "@ngrx/signals": "^21.0.1",
+    "artplayer": "^5.4.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

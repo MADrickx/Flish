@@ -41,7 +41,7 @@ export const AudioStore = signalStore(
     totalPages: computed(() => Math.max(1, Math.ceil(total() / pageSize()))),
     streamUrl: computed(() => {
       const item = nowPlaying();
-      return item ? `/api/files/${item.id}/stream` : null;
+      return item ? `/p/${item.shortCode}` : null;
     }),
     queueLength: computed(() => queue().length),
   })),

@@ -40,7 +40,7 @@ export const VideoStore = signalStore(
     hasItems: computed(() => items().length > 0),
     streamUrl: computed(() => {
       const item = nowPlaying();
-      return item ? `/api/files/${item.id}/stream` : null;
+      return item ? `/p/${item.shortCode}` : null;
     }),
   })),
 

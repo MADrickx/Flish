@@ -133,7 +133,7 @@ public sealed class FileIndexer(
 
     private static readonly char[] ShortCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".ToCharArray();
 
-    internal static string GenerateShortCode()
+    public static string GenerateShortCode()
     {
         var bytes = RandomNumberGenerator.GetBytes(6);
         return new string(bytes.Select(b => ShortCodeAlphabet[b % ShortCodeAlphabet.Length]).ToArray());

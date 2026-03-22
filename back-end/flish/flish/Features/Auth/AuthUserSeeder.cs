@@ -18,7 +18,7 @@ public sealed class AuthUserSeeder(
 
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
-        await _dbContext.Database.MigrateAsync(cancellationToken);
+        await _dbContext.Database.EnsureCreatedAsync(cancellationToken);
 
         var username = _authOptions.SeedUser.Username.Trim();
         if (string.IsNullOrWhiteSpace(username))

@@ -8,4 +8,14 @@
     {{ size() }} &middot; {{ extension() }}
     <app-stream-link [shortCode]="shortCode()" />
   </div>
+  @if (canTranscode()) {
+    @if (transcoding()) {
+      <div class="transcode-progress">
+        <div class="progress-bar" [style.width.%]="transcodeProgress()"></div>
+        <span class="progress-label">{{ transcodeProgress() }}%</span>
+      </div>
+    } @else {
+      <button class="transcode-btn" type="button" (click)="startTranscode($event)">Convert to MP4</button>
+    }
+  }
 </div>

@@ -36,7 +36,7 @@ describe('AudioStore', () => {
 
   it('should compute streamUrl when playing', () => {
     store.play(mockTrack);
-    expect(store.streamUrl()).toBe('/api/files/track-1/stream');
+    expect(store.streamUrl()).toBe('/p/AUD123');
     expect(store.playbackStatus()).toBe('playing');
   });
 

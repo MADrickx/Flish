@@ -1,17 +1,10 @@
 <div class="header">
   <span class="title">{{ title() }}</span>
-  <button class="close-btn" type="button" (click)="closed.emit()">Close</button>
+  <button class="close-btn" type="button" (click)="onClose()">Close</button>
 </div>
-<video
-  #videoEl
-  [src]="src()"
-  controls
-  autoplay
-  preload="metadata"
-></video>
+<div class="player-container" #playerContainer></div>
 @if (shortCode()) {
   <div class="stream-panel">
     <app-stream-link [shortCode]="shortCode()" [compact]="false" />
   </div>
 }
-<div class="hint">Space: play/pause &middot; Left/Right: seek 10s &middot; F: fullscreen &middot; Esc: close</div>

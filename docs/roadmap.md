@@ -67,6 +67,8 @@ Status of what's been built and what remains to deliver v1 of the multimedia VPS
 ---
 
 - [x] **VLC stream URLs**: short codes (`/s/{code}` authenticated + `/p/{code}` public), `StreamHelper` refactor, `stream-link` component in all media views
+- [x] **ArtPlayer**: replaced native `<video>` with ArtPlayer.js (fullscreen, PiP, playback rate, hotkeys, settings)
+- [x] **FFmpeg transcoding**: convert MKV/AVI/MOV to MP4 from the UI, progress tracking, auto re-index on completion
 
 ## Future Ideas
 

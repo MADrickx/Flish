@@ -25,7 +25,7 @@ public static class StreamHelper
             httpContext.Response.ContentType = mimeType;
             httpContext.Response.ContentLength = chunkLength;
 
-            await using var fs = new FileStream(absolutePath, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, true);
+            await using var fs = new FileStream(absolutePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, BufferSize, true);
             fs.Seek(start, SeekOrigin.Begin);
 
             var buffer = new byte[BufferSize];
@@ -43,7 +43,7 @@ public static class StreamHelper
         }
 
         httpContext.Response.Headers.AcceptRanges = "bytes";
-        var fullStream = new FileStream(absolutePath, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, true);
+        var fullStream = new FileStream(absolutePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, BufferSize, true);
         return Results.File(fullStream, mimeType, enableRangeProcessing: true);
     }
 }

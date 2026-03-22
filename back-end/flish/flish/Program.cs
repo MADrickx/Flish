@@ -5,6 +5,7 @@ using flish.Contracts.Files;
 using flish.Contracts.Indexing;
 using flish.Features.Auth;
 using flish.Features.Indexing;
+using flish.Features.Transcoding;
 using flish.Infrastructure.Persistence;
 using flish.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication;
@@ -51,6 +52,7 @@ builder.Services.AddScoped<AuthUserSeeder>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<FileIndexRepository>();
 builder.Services.AddSingleton<IFileIndexer, FileIndexer>();
+builder.Services.AddSingleton<TranscodeService>();
 builder.Services.AddHostedService<IndexingBackgroundService>();
 
 var app = builder.Build();
@@ -284,6 +286,29 @@ api.MapPost("/index/rebuild", async (IFileIndexer indexer, CancellationToken can
     await indexer.RunOnceAsync(cancellationToken);
     return Results.Accepted("/api/index/status");
 }).RequireRateLimiting("writes");
+
+api.MapPost("/files/{id:guid}/transcode", async (
+        Guid id,
+        FileIndexRepository repo,
+        TranscodeService transcodeService,
+        CancellationToken ct) =>
+    {
+        var entry = await repo.GetActiveByIdAsync(id, ct);
+        if (entry is null) return Results.NotFound();
+        if (entry.Category != "video") return Results.BadRequest(new { error = "Only video files can be transcoded." });
+        if (string.Equals(entry.Extension, "mp4", StringComparison.OrdinalIgnoreCase))
+            return Results.BadRequest(new { error = "File is already MP4." });
+
+        var jobId = transcodeService.StartTranscode(entry);
+        return Results.Accepted($"/api/transcode/{jobId}/status", new { jobId });
+    })
+    .RequireRateLimiting("writes");
+
+api.MapGet("/transcode/{jobId}/status", (string jobId, TranscodeService transcodeService) =>
+{
+    var job = transcodeService.GetJob(jobId);
+    return job is null ? Results.NotFound() : Results.Ok(job);
+});
 
 app.MapGet("/s/{code}", async (
         string code,

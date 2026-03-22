@@ -54,6 +54,19 @@ Authentication: HTTP Basic Auth.
   - Triggers on-demand full scan
   - Rate-limited
 
+## Transcoding
+
+- `POST /api/files/{id}/transcode`
+  - Starts FFmpeg conversion to MP4 (H.264 + AAC)
+  - Only for video files that are not already MP4
+  - Rate-limited
+  - Response: `202 Accepted` `{ "jobId": "A1B2C3D4" }`
+
+- `GET /api/transcode/{jobId}/status`
+  - Returns transcode job progress
+  - Response: `{ "id", "fileId", "status", "progressPercent", "outputPath", "error" }`
+  - Status values: `queued`, `running`, `completed`, `failed`
+
 ## Short Code Streaming (VLC / External Players)
 
 - `GET /s/{code}` (requires Basic Auth)
