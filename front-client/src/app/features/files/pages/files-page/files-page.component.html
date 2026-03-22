@@ -41,7 +41,6 @@
         <thead>
           <tr>
             <th>Name</th>
-            <th>Path</th>
             <th>Type</th>
             <th>Size</th>
             <th>Code</th>
@@ -66,16 +65,32 @@
                   />
                 } @else {
                   <span class="name-text">{{ item.fileName }}</span>
-                  <button class="rename-icon" type="button" (click)="startRename(item.id, item.fileName); $event.stopPropagation()">&#9998;</button>
+                  <button
+                    class="rename-icon"
+                    type="button"
+                    (click)="startRename(item.id, item.fileName); $event.stopPropagation()"
+                  >
+                    &#9998;
+                  </button>
                 }
               </td>
-              <td class="path">{{ item.relativePath }}</td>
               <td>{{ item.category }}</td>
               <td>{{ toBytes(item.sizeBytes) }}</td>
-              <td><app-stream-link [shortCode]="item.shortCode" [fileId]="item.id" [isPublic]="item.isPublic" /></td>
+              <td>
+                <app-stream-link
+                  [shortCode]="item.shortCode"
+                  [fileId]="item.id"
+                  [isPublic]="item.isPublic"
+                />
+              </td>
               <td>{{ item.lastWriteUtc | date: 'medium' }}</td>
               <td class="row-actions">
-                <a class="btn ghost icon-btn" [href]="api.downloadUrl(item.id)" target="_blank" rel="noopener">
+                <a
+                  class="btn ghost icon-btn"
+                  [href]="api.downloadUrl(item.id)"
+                  target="_blank"
+                  rel="noopener"
+                >
                   <span aria-hidden="true">↓</span> Download
                 </a>
                 <button class="btn danger icon-btn" type="button" (click)="onDelete(item.id)">
@@ -94,8 +109,17 @@
   }
 
   <footer class="pager">
-    <button class="btn ghost" type="button" (click)="prevPage()" [disabled]="store.page() <= 1">Prev</button>
+    <button class="btn ghost" type="button" (click)="prevPage()" [disabled]="store.page() <= 1">
+      Prev
+    </button>
     <span>Page {{ store.page() }} / {{ store.totalPages() }}</span>
-    <button class="btn ghost" type="button" (click)="nextPage()" [disabled]="store.page() >= store.totalPages()">Next</button>
+    <button
+      class="btn ghost"
+      type="button"
+      (click)="nextPage()"
+      [disabled]="store.page() >= store.totalPages()"
+    >
+      Next
+    </button>
   </footer>
 </section>
